@@ -1,0 +1,27 @@
+{
+  "mlflow_schema_version": "1.0",
+  "experiment_name": "GhostInTheMachine_Benchmark",
+  "total_runs": 280,
+  "latest_run": {
+    "run_id": "run_symmetric_c30_s999_Greedy-EFT",
+    "timestamp": "2026-10-25 23:19:47",
+    "seed": 999,
+    "algorithm": "Greedy-EFT",
+    "churn_rate": 0.3,
+    "network_profile": "symmetric",
+    "num_tasks": 20,
+    "makespan": 91.34,
+    "deadline": 160.22,
+    "deadline_missed": 0,
+    "useful_compute_time_sec": 161.91,
+    "lost_compute_time_sec": 0.0,
+    "checkpoint_ser_time_sec": 0.0,
+    "checkpoint_net_time_sec": 0.0,
+    "checkpoint_ver_time_sec": 0.0,
+    "verification_tax_sec": 0.7,
+    "scheduler_overhead_sec": 0.0002,
+    "goodput_to_overhead_ratio": 0.9957,
+    "total_checkpoint_bytes_mb": 0.0,
+    "failure_count": 0
+  }
+}
