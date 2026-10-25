@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GhostInTheMachine: Benchmark Execution Script
+# GhostInTheMachine: End-to-End Benchmark Execution Harness
 set -e
 
 echo "=========================================================================="
@@ -10,5 +10,5 @@ echo "==========================================================================
 python run_experiments.py --tasks 20
 
 echo "=========================================================================="
-echo "Artifact Generation Complete! Check the 'figures/' directory."
+echo "Artifact Generation Complete! Check the 'artifacts/' directory."
 echo "=========================================================================="

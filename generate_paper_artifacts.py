@@ -10,7 +10,7 @@ Reads experimental telemetry CSVs and automatically outputs publication-ready ve
 import os
 import csv
 import math
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import matplotlib
 # Use non-interactive backend
 matplotlib.use("Agg")
@@ -134,7 +134,6 @@ def generate_figure1_deadline_miss_rate(summary_csv: str, output_dir: str):
         print(f"File not found: {summary_csv}")
         return
 
-    # Read data
     data_by_alg_churn: Dict[Tuple[str, float], List[float]] = {}
     with open(summary_csv, mode="r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -169,11 +168,10 @@ def generate_figure1_deadline_miss_rate(summary_csv: str, output_dir: str):
             vals = data_by_alg_churn.get((alg, churn), [])
             if vals:
                 mean = np.mean(vals)
-                # 95% Confidence Interval
                 ci = 1.96 * (np.std(vals, ddof=1) / math.sqrt(len(vals))) if len(vals) > 1 else 0.0
                 means.append(mean)
                 cis.append(ci)
-                valid_churns.append(churn * 100.0)  # churn as %
+                valid_churns.append(churn * 100.0)
 
         if valid_churns:
             st = styles[alg]
@@ -216,7 +214,6 @@ def generate_figure2_recovery_time_vs_delta(events_csv: str, output_dir: str):
             latency = float(row["recovery_latency_sec"])
             uplink = float(row["uplink_mbps"])
 
-            # Classify into slow uplink (~10 Mbps) vs fast uplink (~100 Mbps)
             if uplink < 30.0:
                 slow_deltas.append(delta)
                 slow_latencies.append(latency)
@@ -228,14 +225,12 @@ def generate_figure2_recovery_time_vs_delta(events_csv: str, output_dir: str):
 
     if slow_deltas:
         ax.scatter(slow_deltas, slow_latencies, color="#D32F2F", alpha=0.6, label="Slower Uplink ($U_k \\approx 10$ Mbps)", s=45, marker="o")
-        # Regression line
         poly_slow = np.poly1d(np.polyfit(slow_deltas, slow_latencies, 1))
         x_vals = np.linspace(min(slow_deltas), max(slow_deltas), 100)
         ax.plot(x_vals, poly_slow(x_vals), color="#B71C1C", linestyle="-", lw=2.2, label="Fit: Slow Uplink ($R^2$ Trend)")
 
     if fast_deltas:
         ax.scatter(fast_deltas, fast_latencies, color="#1976D2", alpha=0.6, label="Fast Uplink ($U_k \\approx 100$ Mbps)", s=45, marker="s")
-        # Regression line
         poly_fast = np.poly1d(np.polyfit(fast_deltas, fast_latencies, 1))
         x_vals = np.linspace(min(fast_deltas), max(fast_deltas), 100)
         ax.plot(x_vals, poly_fast(x_vals), color="#0D47A1", linestyle="--", lw=2.2, label="Fit: Fast Uplink ($R^2$ Trend)")
@@ -314,14 +309,12 @@ def generate_figure3_goodput_breakdown(summary_csv: str, output_dir: str):
     x = np.arange(len(algorithms))
     width = 0.52
 
-    # Color palette
     c_useful = "#2E7D32"  # Forest green
     c_ser = "#F57C00"     # Orange
     c_net = "#1976D2"     # Blue
     c_ver = "#7B1FA2"     # Purple
     c_lost = "#D32F2F"    # Red
 
-    # Stack bars
     p1 = ax.bar(x, useful_means, width, label="Useful Compute", color=c_useful, edgecolor="black", linewidth=0.5)
     bottom_ser = np.array(useful_means)
     p2 = ax.bar(x, ser_means, width, bottom=bottom_ser, label="State Serialization", color=c_ser, edgecolor="black", linewidth=0.5)
@@ -346,20 +339,21 @@ def generate_figure3_goodput_breakdown(summary_csv: str, output_dir: str):
     print(f"Generated Figure 3: {pdf_path} and {png_path}")
 
 
-def main():
+def main(output_dirs: Optional[List[str]] = None):
     setup_matplotlib_style()
-    output_dir = "figures"
-    os.makedirs(output_dir, exist_ok=True)
+    dirs = output_dirs or ["artifacts", "figures"]
     telemetry_dir = "telemetry_logs"
 
     summary_csv = os.path.join(telemetry_dir, "telemetry_summary.csv")
     events_csv = os.path.join(telemetry_dir, "telemetry_events.csv")
 
-    generate_architecture_flowchart(output_dir)
-    generate_figure1_deadline_miss_rate(summary_csv, output_dir)
-    generate_figure2_recovery_time_vs_delta(events_csv, output_dir)
-    generate_figure3_goodput_breakdown(summary_csv, output_dir)
-    print("All paper artifacts generated successfully!")
+    for out_dir in dirs:
+        os.makedirs(out_dir, exist_ok=True)
+        generate_architecture_flowchart(out_dir)
+        generate_figure1_deadline_miss_rate(summary_csv, out_dir)
+        generate_figure2_recovery_time_vs_delta(events_csv, out_dir)
+        generate_figure3_goodput_breakdown(summary_csv, out_dir)
+        print(f"All paper artifacts generated in '{out_dir}' successfully!")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ Executes the comprehensive evaluation scenario matrix across:
 - Hourly Churn Rates: 0.0 (0%) to 0.30 (30%)
 - Network Profiles: Asymmetric Residential (10 Mbps upload) vs Fast Symmetric (100 Mbps upload)
 - Independent Random Seeds: 42, 101, 2024, 777, 999
-- Generates publication-ready figures upon completion.
+- Generates publication-ready figures directly into 'artifacts/' and 'figures/'.
 """
 
 import sys
@@ -31,9 +31,9 @@ import generate_paper_artifacts
 def run_experiment_matrix(
     seeds: List[int] = [42, 101, 2024, 777, 999],
     churn_rates: List[float] = [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30],
-    num_tasks: int = 25,
+    num_tasks: int = 20,
     output_dir: str = "telemetry_logs",
-    figures_dir: str = "figures",
+    artifacts_dirs: List[str] = ["artifacts", "figures"],
 ):
     print("=" * 75)
     print("GhostInTheMachine: Automated Execution Engine & Telemetry Pipeline")
@@ -42,6 +42,7 @@ def run_experiment_matrix(
     print(f"Hourly Churn Rates: {[f'{c*100:.0f}%' for c in churn_rates]}")
     print(f"Tasks per Workflow: {num_tasks}")
     print(f"Output Telemetry Directory: {output_dir}")
+    print(f"Output Artifacts Directories: {artifacts_dirs}")
     print("=" * 75)
 
     logger = ExperimentLogger(output_dir=output_dir)
@@ -126,13 +127,12 @@ def run_experiment_matrix(
     print("Telemetry generation complete! Generating publication-ready figures...")
     print("=" * 75)
 
-    os.makedirs(figures_dir, exist_ok=True)
-    generate_paper_artifacts.main()
+    generate_paper_artifacts.main(output_dirs=artifacts_dirs)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GhostInTheMachine Benchmark Harness")
-    parser.add_argument("--tasks", type=int, default=24, help="Number of tasks per DAG")
+    parser.add_argument("--tasks", type=int, default=20, help="Number of tasks per DAG")
     parser.add_argument("--quick", action="store_true", help="Run a quick smoke test")
     args = parser.parse_args()
 

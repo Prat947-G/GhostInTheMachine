@@ -1,4 +1,4 @@
-# GhostInTheMachine: Benchmark Execution Script (PowerShell)
+# GhostInTheMachine: End-to-End Benchmark Execution Harness (PowerShell)
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================================================" -ForegroundColor Cyan
@@ -8,5 +8,5 @@ Write-Host "====================================================================
 python run_experiments.py --tasks 20
 
 Write-Host "==========================================================================" -ForegroundColor Cyan
-Write-Host "Artifact Generation Complete! Check the 'figures/' directory." -ForegroundColor Green
+Write-Host "Artifact Generation Complete! Check the 'artifacts/' directory." -ForegroundColor Green
 Write-Host "==========================================================================" -ForegroundColor Cyan
