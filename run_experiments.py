@@ -45,7 +45,7 @@ def run_experiment_matrix(
     print(f"Output Artifacts Directories: {artifacts_dirs}")
     print("=" * 75)
 
-    logger = ExperimentLogger(output_dir=output_dir)
+    logger = ExperimentLogger(output_dir=output_dir, overwrite=True)
     risk_engine = RiskEngine()
 
     schedulers = [

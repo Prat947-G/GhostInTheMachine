@@ -20,8 +20,9 @@ from network_fault_injector import SimulationMetrics, FailureEvent
 
 
 class ExperimentLogger:
-    def __init__(self, output_dir: str = "telemetry_logs"):
+    def __init__(self, output_dir: str = "telemetry_logs", overwrite: bool = False):
         self.output_dir = output_dir
+        self.overwrite = overwrite
         os.makedirs(output_dir, exist_ok=True)
         self.summary_csv_path = os.path.join(output_dir, "telemetry_summary.csv")
         self.events_csv_path = os.path.join(output_dir, "telemetry_events.csv")
@@ -33,7 +34,7 @@ class ExperimentLogger:
         self._init_csv_files()
 
     def _init_csv_files(self) -> None:
-        if not os.path.exists(self.summary_csv_path):
+        if self.overwrite or not os.path.exists(self.summary_csv_path):
             with open(self.summary_csv_path, mode="w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow([
@@ -59,7 +60,7 @@ class ExperimentLogger:
                     "failure_count",
                 ])
 
-        if not os.path.exists(self.events_csv_path):
+        if self.overwrite or not os.path.exists(self.events_csv_path):
             with open(self.events_csv_path, mode="w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow([
