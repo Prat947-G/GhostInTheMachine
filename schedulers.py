@@ -39,10 +39,12 @@ class BaseScheduler(ABC):
         allocations: Dict[str, str],
         task_finish_times: Dict[str, float],
         worker_avail_time: Dict[str, float],
+        workers_map: Optional[Dict[str, Worker]] = None,
     ) -> float:
         """
         Computes Earliest Finish Time (EFT) of a task on a specific worker.
         EFT = max(worker_avail, max_pred_arrival) + (w_i / s_ik)
+        Accurately looks up predecessor worker upload bandwidth via workers_map.
         """
         w_avail = worker_avail_time.get(worker.id, 0.0)
         max_pred_arrival = 0.0
@@ -50,8 +52,8 @@ class BaseScheduler(ABC):
             p_finish = task_finish_times.get(p_id, 0.0)
             p_worker_id = allocations.get(p_id)
             if p_worker_id and p_worker_id != worker.id:
-                p_worker = next((w for w in [worker] if w.id == p_worker_id), None)
-                p_up = 10.0 if not p_worker else p_worker.upload_mbps
+                p_worker = workers_map.get(p_worker_id) if workers_map else None
+                p_up = p_worker.upload_mbps if p_worker else 10.0
                 payload = dag.edge_payloads.get((p_id, task.id), 0.0)
                 comm_time = (payload * 8.0) / min(p_up, worker.download_mbps) + 0.025
                 p_arrival = p_finish + comm_time
@@ -83,6 +85,7 @@ class GreedyEFTScheduler(BaseScheduler):
         allocations: Dict[str, str] = {}
         task_finish_times: Dict[str, float] = {}
         worker_avail_time: Dict[str, float] = {w.id: 0.0 for w in workers}
+        workers_map: Dict[str, Worker] = {w.id: w for w in workers}
         order = dag.topological_sort()
 
         for t_id in order:
@@ -94,7 +97,7 @@ class GreedyEFTScheduler(BaseScheduler):
                 if risk_engine and not risk_engine.is_feasible(task, w):
                     continue
                 eft = self.compute_task_eft(
-                    task, w, dag, allocations, task_finish_times, worker_avail_time
+                    task, w, dag, allocations, task_finish_times, worker_avail_time, workers_map
                 )
                 if eft < best_eft:
                     best_eft = eft
@@ -134,6 +137,7 @@ class HEFTScheduler(BaseScheduler):
         # Sort tasks descending by rank_u
         sorted_tasks = sorted(dag.tasks.keys(), key=lambda t: ranks[t], reverse=True)
 
+        workers_map: Dict[str, Worker] = {w.id: w for w in workers}
         # 2. Assign tasks by earliest finish time
         for t_id in sorted_tasks:
             task = dag.tasks[t_id]
@@ -144,7 +148,7 @@ class HEFTScheduler(BaseScheduler):
                 if risk_engine and not risk_engine.is_feasible(task, w):
                     continue
                 eft = self.compute_task_eft(
-                    task, w, dag, allocations, task_finish_times, worker_avail_time
+                    task, w, dag, allocations, task_finish_times, worker_avail_time, workers_map
                 )
                 if eft < best_eft:
                     best_eft = eft
@@ -163,16 +167,21 @@ class HEFTScheduler(BaseScheduler):
 class BoundedACOScheduler(BaseScheduler):
     """
     Bounded Ant Colony Optimization (ACO) DAG Scheduler.
-    Uses pheromone matrix tau[task][worker], heuristic visibility eta[task][worker],
-    colony size limit, and iteration limit.
+    Tuned for Q1 benchmark rigor:
+    - Expanded search budget (colony_size=20, max_iterations=25)
+    - Max-Min Ant System (MMAS) bounds [tau_min=0.05, tau_max=5.0]
+    - Elitist multi-ant reinforcement
+    - Accurate upload bandwidth modeling via workers_map
     """
     def __init__(
         self,
-        colony_size: int = 10,
-        max_iterations: int = 15,
-        rho_evap: float = 0.15,
+        colony_size: int = 20,
+        max_iterations: int = 25,
+        rho_evap: float = 0.10,
         alpha: float = 1.0,
         beta: float = 2.0,
+        tau_min: float = 0.05,
+        tau_max: float = 5.0,
         seed: int = 42,
     ):
         super().__init__("Bounded-ACO")
@@ -181,6 +190,8 @@ class BoundedACOScheduler(BaseScheduler):
         self.rho = rho_evap
         self.alpha = alpha
         self.beta = beta
+        self.tau_min = tau_min
+        self.tau_max = tau_max
         self.seed = seed
 
     def schedule(
@@ -191,6 +202,7 @@ class BoundedACOScheduler(BaseScheduler):
     ) -> Dict[str, str]:
         rng = random.Random(self.seed)
         task_order = dag.topological_sort()
+        workers_map: Dict[str, Worker] = {w.id: w for w in workers}
 
         # Initialize pheromone matrix
         pheromone: Dict[Tuple[str, str], float] = {
@@ -221,7 +233,7 @@ class BoundedACOScheduler(BaseScheduler):
                     weights = []
                     for w in feasible_workers:
                         eft = self.compute_task_eft(
-                            task, w, dag, ant_alloc, task_finish, worker_avail
+                            task, w, dag, ant_alloc, task_finish, worker_avail, workers_map
                         )
                         eta = 1.0 / max(0.1, eft)
                         tau = pheromone.get((t_id, w.id), 1.0)
@@ -237,7 +249,7 @@ class BoundedACOScheduler(BaseScheduler):
 
                     ant_alloc[t_id] = chosen_w.id
                     eft = self.compute_task_eft(
-                        task, chosen_w, dag, ant_alloc, task_finish, worker_avail
+                        task, chosen_w, dag, ant_alloc, task_finish, worker_avail, workers_map
                     )
                     task_finish[t_id] = eft
                     worker_avail[chosen_w.id] = eft
@@ -251,13 +263,15 @@ class BoundedACOScheduler(BaseScheduler):
 
             # Pheromone evaporation
             for key in pheromone:
-                pheromone[key] *= (1.0 - self.rho)
+                pheromone[key] = max(self.tau_min, pheromone[key] * (1.0 - self.rho))
 
-            # Pheromone deposit by best ant
-            if best_allocation:
-                deposit = 1.0 / max(1.0, best_makespan)
-                for t_id, w_id in best_allocation.items():
-                    pheromone[(t_id, w_id)] += deposit
+            # Elitist reinforcement: top 3 ants deposit pheromone
+            colony_schedules.sort(key=lambda x: x[0])
+            for rank_idx, (ms, alloc) in enumerate(colony_schedules[:3]):
+                weight = 3 - rank_idx  # 3 for 1st, 2 for 2nd, 1 for 3rd
+                deposit = (100.0 / max(1.0, ms)) * weight
+                for t_id, w_id in alloc.items():
+                    pheromone[(t_id, w_id)] = min(self.tau_max, pheromone[(t_id, w_id)] + deposit)
 
         return best_allocation
 
@@ -306,11 +320,11 @@ class ProposedRiskAwareScheduler(BaseScheduler):
                     allocations=allocations,
                     task_finish_times=task_finish_times,
                     worker_avail_time=worker_avail_time,
+                    workers_map=workers_by_id,
                 )
 
                 if j_score < best_score:
                     best_score = j_score
-                    best_worker = w
                     best_worker = w
 
             if best_worker is None:
@@ -319,7 +333,7 @@ class ProposedRiskAwareScheduler(BaseScheduler):
 
             allocations[t_id] = best_worker.id
             eft = self.compute_task_eft(
-                task, best_worker, dag, allocations, task_finish_times, worker_avail_time
+                task, best_worker, dag, allocations, task_finish_times, worker_avail_time, workers_by_id
             )
             task_finish_times[t_id] = eft
             worker_avail_time[best_worker.id] = eft

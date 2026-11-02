@@ -1,0 +1,81 @@
+{
+  "timestamp": "2026-11-02 15:03:55",
+  "platform": {
+    "python_version": "3.14.6 (tags/v3.14.6:c63aec6, Jun 10 2026, 10:26:10) [MSC v.1944 64 bit (AMD64)]",
+    "os": "nt"
+  },
+  "simulation_assumed_parameters": {
+    "serialization_rate_mb_s": 120.0,
+    "verification_rate_mb_s": 350.0,
+    "asymmetric_uplink_mbps": 10.0,
+    "symmetric_uplink_mbps": 100.0
+  },
+  "physical_measured_benchmarks": {
+    "mean_serialization_rate_mb_s": 4931.41,
+    "mean_restoration_rate_mb_s": 5093.95,
+    "mean_verification_rate_mb_s": 1862.72,
+    "measured_10mbps_transfer_4mb_sec": 3.356,
+    "measured_100mbps_transfer_4mb_sec": 0.336,
+    "serialization_samples": {
+      "1MB": {
+        "size_mb": 1.0,
+        "serialization_time_sec": 0.00024,
+        "serialization_rate_mb_s": 4111.84,
+        "restoration_time_sec": 0.00024,
+        "restoration_rate_mb_s": 4230.12
+      },
+      "5MB": {
+        "size_mb": 5.0,
+        "serialization_time_sec": 0.00085,
+        "serialization_rate_mb_s": 5916.46,
+        "restoration_time_sec": 0.00092,
+        "restoration_rate_mb_s": 5419.47
+      },
+      "10MB": {
+        "size_mb": 10.0,
+        "serialization_time_sec": 0.00214,
+        "serialization_rate_mb_s": 4679.9,
+        "restoration_time_sec": 0.00191,
+        "restoration_rate_mb_s": 5241.36
+      },
+      "20MB": {
+        "size_mb": 20.0,
+        "serialization_time_sec": 0.00399,
+        "serialization_rate_mb_s": 5017.44,
+        "restoration_time_sec": 0.00365,
+        "restoration_rate_mb_s": 5484.86
+      }
+    },
+    "verification_samples": {
+      "1MB": {
+        "size_mb": 1.0,
+        "sha256_time_sec": 0.00054,
+        "sha256_rate_mb_s": 1844.68,
+        "digest_prefix": "c5e318aa31663a4a"
+      },
+      "5MB": {
+        "size_mb": 5.0,
+        "sha256_time_sec": 0.00251,
+        "sha256_rate_mb_s": 1993.46,
+        "digest_prefix": "e0edab46ef81ef87"
+      },
+      "10MB": {
+        "size_mb": 10.0,
+        "sha256_time_sec": 0.00561,
+        "sha256_rate_mb_s": 1781.77,
+        "digest_prefix": "d4d3ca6085ffb94a"
+      },
+      "20MB": {
+        "size_mb": 20.0,
+        "sha256_time_sec": 0.01092,
+        "sha256_rate_mb_s": 1830.98,
+        "digest_prefix": "7d788e4c2a8f1ccf"
+      }
+    }
+  },
+  "variance_and_validity_analysis": {
+    "ser_model_conservative_factor": 41.1,
+    "ver_model_conservative_factor": 5.32,
+    "conclusion": "Simulation constants are conservative relative to modern consumer CPU throughputs, confirming that simulated overheads represent a realistic or pessimistic bound."
+  }
+}

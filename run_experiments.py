@@ -51,7 +51,7 @@ def run_experiment_matrix(
     schedulers = [
         ProposedRiskAwareScheduler(risk_engine),
         HEFTScheduler(),
-        BoundedACOScheduler(colony_size=10, max_iterations=12),
+        BoundedACOScheduler(colony_size=20, max_iterations=25),
         GreedyEFTScheduler(),
     ]
 
@@ -124,9 +124,11 @@ def run_experiment_matrix(
                         )
 
     print("\n" + "=" * 75)
-    print("Telemetry generation complete! Generating publication-ready figures...")
+    print("Telemetry generation complete! Computing statistical confidence intervals...")
     print("=" * 75)
+    logger.generate_statistical_report()
 
+    print("Generating publication-ready figures...")
     generate_paper_artifacts.main(output_dirs=artifacts_dirs)
 
 

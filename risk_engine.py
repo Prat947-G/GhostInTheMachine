@@ -91,9 +91,11 @@ class RiskEngine:
         allocations: Dict[str, str],
         task_finish_times: Dict[str, float],
         worker_avail_time: Dict[str, float],
+        workers_map: Optional[Dict[str, Worker]] = None,
     ) -> float:
         """
         Calculates J(i, k) = EFT(i, k) + delta*E[ckpt] + eta*E[restart_loss] + rho*E[ver]
+        Incorporates real sender upload capacity from workers_map.
         """
         if not self.is_feasible(task, worker):
             return float("inf")
@@ -105,8 +107,8 @@ class RiskEngine:
             p_finish = task_finish_times.get(p_id, 0.0)
             p_worker_id = allocations.get(p_id)
             if p_worker_id and p_worker_id != worker.id:
-                # Inter-worker transfer over asymmetric link
-                p_worker_up = 10.0  # default
+                p_worker = workers_map.get(p_worker_id) if workers_map else None
+                p_worker_up = p_worker.upload_mbps if p_worker else 10.0
                 payload = dag.edge_payloads.get((p_id, task.id), 0.0)
                 comm_time = (payload * 8.0) / min(p_worker_up, worker.download_mbps) + 0.025
                 p_arrival = p_finish + comm_time

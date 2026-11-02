@@ -4,3 +4,6 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 Thumbs.db
+~$*
+conference-template-fixed.docx
+conference-template-orig.docx
