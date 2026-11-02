@@ -62,14 +62,15 @@ def run_experiment_matrix(
     for net_profile in ["asymmetric", "symmetric"]:
         for churn in churn_rates:
             for seed in seeds:
-                # 1. Synthesize benchmark workflow DAG
+                                # 1. Synthesize benchmark workflow DAG with calibrated link model
                 dag = generate_synthetic_dag(
                     num_tasks=num_tasks,
                     seed=seed,
                     avg_compute_sec=16.0,
                     avg_state_size_mb=40.0,
                     state_delta_ratio=0.20,
-                    deadline_factor=1.20,
+                    deadline_factor=1.30,
+                    effective_uplink_mbps=(10.0 if net_profile == "asymmetric" else 100.0),
                 )
 
                 # 2. Instantiate heterogeneous P2P compute pool
@@ -91,18 +92,18 @@ def run_experiment_matrix(
                     allocations = sched.schedule(dag, workers, risk_engine)
                     sched_overhead = time.time() - t0
 
-                    # Run discrete-event fault/network simulation
+                                        # Run discrete-event fault/network simulation with adaptive risk gating
                     sim = DiscreteEventSimulationEngine(
                         dag=dag,
                         workers=workers,
                         allocations=allocations,
+                        risk_engine=risk_engine,
                         enable_checkpointing=(sched.name == "Proposed-RiskAware"),
-                        checkpoint_interval_sec=10.0,
                         use_weibull_churn=(churn > 0.15),
+                        time_acceleration=75.0,
                         seed=seed,
                     )
-                    metrics = sim.run()
-                    metrics.scheduler_overhead_sec = sched_overhead
+                    metrics = sim.run(scheduler_overhead_sec=sched_overhead)
 
                     run_id = f"run_{net_profile}_c{int(churn*100)}_s{seed}_{sched.name}"
                     logger.log_run(

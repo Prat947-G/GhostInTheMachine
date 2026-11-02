@@ -4,24 +4,25 @@
   "total_runs": 280,
   "latest_run": {
     "run_id": "run_symmetric_c30_s999_Greedy-EFT",
-    "timestamp": "2026-11-02 15:46:49",
+    "timestamp": "2026-11-03 03:17:29",
     "seed": 999,
     "algorithm": "Greedy-EFT",
     "churn_rate": 0.3,
     "network_profile": "symmetric",
     "num_tasks": 20,
-    "makespan": 72.353,
-    "deadline": 160.22,
+    "makespan": 80.073,
+    "deadline": 139.06,
     "deadline_missed": 0,
-    "useful_compute_time_sec": 171.374,
-    "lost_compute_time_sec": 0.0,
+    "useful_compute_time_sec": 172.197,
+    "lost_compute_time_sec": 2.899,
+    "recovery_stall_time_sec": 6.358,
     "checkpoint_ser_time_sec": 0.0,
     "checkpoint_net_time_sec": 0.0,
     "checkpoint_ver_time_sec": 0.0,
     "verification_tax_sec": 0.7,
     "scheduler_overhead_sec": 0.0001,
-    "goodput_to_overhead_ratio": 0.9959,
+    "goodput_to_overhead_ratio": 0.9453,
     "total_checkpoint_bytes_mb": 0.0,
-    "failure_count": 0
+    "failure_count": 1
   }
 }

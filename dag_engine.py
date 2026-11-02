@@ -159,7 +159,8 @@ def generate_synthetic_dag(
     avg_compute_sec: float = 15.0,
     state_delta_ratio: float = 0.2,
     avg_state_size_mb: float = 40.0,
-    deadline_factor: float = 1.35,
+    deadline_factor: float = 1.30,
+    effective_uplink_mbps: float = 10.0,
 ) -> WorkflowDAG:
     """
     Synthesizes a realistic heterogeneous scientific workflow DAG
@@ -230,7 +231,7 @@ def generate_synthetic_dag(
         max_pred_finish = 0.0
         for p_id in dag.predecessors[t_id]:
             payload = dag.edge_payloads.get((p_id, t_id), 0.0)
-            comm_time = (payload * 8.0) / 30.0
+            comm_time = (payload * 8.0) / max(0.5, effective_uplink_mbps)
             finish_with_comm = earliest_finish.get(p_id, 0.0) + comm_time
             if finish_with_comm > max_pred_finish:
                 max_pred_finish = finish_with_comm

@@ -316,7 +316,7 @@ class ProposedRiskAwareScheduler(BaseScheduler):
                 if not engine.is_feasible(task, w):
                     continue
 
-                # Calculate Risk-Adjusted Objective Score J(i, k)
+                                # Calculate Risk-Adjusted Objective Score J(i, k)
                 j_score = engine.compute_objective_score(
                     task=task,
                     worker=w,
@@ -325,6 +325,7 @@ class ProposedRiskAwareScheduler(BaseScheduler):
                     task_finish_times=task_finish_times,
                     worker_avail_time=worker_avail_time,
                     workers_map=workers_by_id,
+                    ranks=ranks,
                 )
 
                 if j_score < best_score:
