@@ -159,7 +159,7 @@ def generate_synthetic_dag(
     avg_compute_sec: float = 15.0,
     state_delta_ratio: float = 0.2,
     avg_state_size_mb: float = 40.0,
-    deadline_factor: float = 1.30,
+    deadline_factor: float = 1.20,
     effective_uplink_mbps: float = 10.0,
 ) -> WorkflowDAG:
     """

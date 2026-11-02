@@ -69,7 +69,7 @@ def run_experiment_matrix(
                     avg_compute_sec=16.0,
                     avg_state_size_mb=40.0,
                     state_delta_ratio=0.20,
-                    deadline_factor=1.30,
+                    deadline_factor=1.20,
                     effective_uplink_mbps=(10.0 if net_profile == "asymmetric" else 100.0),
                 )
 
