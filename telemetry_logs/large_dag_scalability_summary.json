@@ -1,0 +1,438 @@
+{
+  "raw_runs": [
+    {
+      "num_tasks": 20,
+      "seed": 42,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 0.273,
+      "makespan_sec": 147.68
+    },
+    {
+      "num_tasks": 20,
+      "seed": 42,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 0.119,
+      "makespan_sec": 147.85
+    },
+    {
+      "num_tasks": 20,
+      "seed": 42,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 87.578,
+      "makespan_sec": 139.25
+    },
+    {
+      "num_tasks": 20,
+      "seed": 42,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 0.129,
+      "makespan_sec": 155.87
+    },
+    {
+      "num_tasks": 20,
+      "seed": 101,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 0.374,
+      "makespan_sec": 152.95
+    },
+    {
+      "num_tasks": 20,
+      "seed": 101,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 0.17,
+      "makespan_sec": 152.95
+    },
+    {
+      "num_tasks": 20,
+      "seed": 101,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 99.386,
+      "makespan_sec": 126.93
+    },
+    {
+      "num_tasks": 20,
+      "seed": 101,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 0.133,
+      "makespan_sec": 121.76
+    },
+    {
+      "num_tasks": 20,
+      "seed": 777,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 0.343,
+      "makespan_sec": 101.95
+    },
+    {
+      "num_tasks": 20,
+      "seed": 777,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 0.153,
+      "makespan_sec": 101.95
+    },
+    {
+      "num_tasks": 20,
+      "seed": 777,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 95.926,
+      "makespan_sec": 101.06
+    },
+    {
+      "num_tasks": 20,
+      "seed": 777,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 0.123,
+      "makespan_sec": 93.08
+    },
+    {
+      "num_tasks": 50,
+      "seed": 42,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 0.619,
+      "makespan_sec": 325.05
+    },
+    {
+      "num_tasks": 50,
+      "seed": 42,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 0.293,
+      "makespan_sec": 341.47
+    },
+    {
+      "num_tasks": 50,
+      "seed": 42,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 215.169,
+      "makespan_sec": 352.64
+    },
+    {
+      "num_tasks": 50,
+      "seed": 42,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 0.304,
+      "makespan_sec": 311.58
+    },
+    {
+      "num_tasks": 50,
+      "seed": 101,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 0.853,
+      "makespan_sec": 268.86
+    },
+    {
+      "num_tasks": 50,
+      "seed": 101,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 0.388,
+      "makespan_sec": 310.68
+    },
+    {
+      "num_tasks": 50,
+      "seed": 101,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 254.96,
+      "makespan_sec": 336.24
+    },
+    {
+      "num_tasks": 50,
+      "seed": 101,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 0.295,
+      "makespan_sec": 266.91
+    },
+    {
+      "num_tasks": 50,
+      "seed": 777,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 0.7,
+      "makespan_sec": 277.09
+    },
+    {
+      "num_tasks": 50,
+      "seed": 777,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 0.312,
+      "makespan_sec": 252.44
+    },
+    {
+      "num_tasks": 50,
+      "seed": 777,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 247.024,
+      "makespan_sec": 333.9
+    },
+    {
+      "num_tasks": 50,
+      "seed": 777,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 0.357,
+      "makespan_sec": 219.23
+    },
+    {
+      "num_tasks": 100,
+      "seed": 42,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 2.889,
+      "makespan_sec": 533.46
+    },
+    {
+      "num_tasks": 100,
+      "seed": 42,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 1.308,
+      "makespan_sec": 555.46
+    },
+    {
+      "num_tasks": 100,
+      "seed": 42,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 808.11,
+      "makespan_sec": 793.72
+    },
+    {
+      "num_tasks": 100,
+      "seed": 42,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 1.057,
+      "makespan_sec": 558.66
+    },
+    {
+      "num_tasks": 100,
+      "seed": 101,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 2.535,
+      "makespan_sec": 609.2
+    },
+    {
+      "num_tasks": 100,
+      "seed": 101,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 1.377,
+      "makespan_sec": 632.1
+    },
+    {
+      "num_tasks": 100,
+      "seed": 101,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 877.057,
+      "makespan_sec": 869.86
+    },
+    {
+      "num_tasks": 100,
+      "seed": 101,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 1.243,
+      "makespan_sec": 570.58
+    },
+    {
+      "num_tasks": 100,
+      "seed": 777,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 3.17,
+      "makespan_sec": 556.04
+    },
+    {
+      "num_tasks": 100,
+      "seed": 777,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 1.404,
+      "makespan_sec": 556.04
+    },
+    {
+      "num_tasks": 100,
+      "seed": 777,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 940.305,
+      "makespan_sec": 807.8
+    },
+    {
+      "num_tasks": 100,
+      "seed": 777,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 1.353,
+      "makespan_sec": 500.9
+    },
+    {
+      "num_tasks": 150,
+      "seed": 42,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 4.392,
+      "makespan_sec": 830.68
+    },
+    {
+      "num_tasks": 150,
+      "seed": 42,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 2.055,
+      "makespan_sec": 949.53
+    },
+    {
+      "num_tasks": 150,
+      "seed": 42,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 1288.814,
+      "makespan_sec": 1267.21
+    },
+    {
+      "num_tasks": 150,
+      "seed": 42,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 1.685,
+      "makespan_sec": 878.1
+    },
+    {
+      "num_tasks": 150,
+      "seed": 101,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 4.282,
+      "makespan_sec": 853.19
+    },
+    {
+      "num_tasks": 150,
+      "seed": 101,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 1.916,
+      "makespan_sec": 877.78
+    },
+    {
+      "num_tasks": 150,
+      "seed": 101,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 1371.263,
+      "makespan_sec": 1318.0
+    },
+    {
+      "num_tasks": 150,
+      "seed": 101,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 2.042,
+      "makespan_sec": 849.65
+    },
+    {
+      "num_tasks": 150,
+      "seed": 777,
+      "algorithm": "Proposed-RiskAware",
+      "scheduling_time_ms": 4.645,
+      "makespan_sec": 857.51
+    },
+    {
+      "num_tasks": 150,
+      "seed": 777,
+      "algorithm": "HEFT",
+      "scheduling_time_ms": 2.163,
+      "makespan_sec": 864.36
+    },
+    {
+      "num_tasks": 150,
+      "seed": 777,
+      "algorithm": "Bounded-ACO",
+      "scheduling_time_ms": 1401.038,
+      "makespan_sec": 1320.38
+    },
+    {
+      "num_tasks": 150,
+      "seed": 777,
+      "algorithm": "Greedy-EFT",
+      "scheduling_time_ms": 1.963,
+      "makespan_sec": 842.48
+    }
+  ],
+  "summary": [
+    {
+      "num_tasks": 20,
+      "algorithm": "Bounded-ACO",
+      "mean_scheduling_time_ms": 94.3,
+      "mean_makespan_sec": 122.41
+    },
+    {
+      "num_tasks": 20,
+      "algorithm": "Greedy-EFT",
+      "mean_scheduling_time_ms": 0.13,
+      "mean_makespan_sec": 123.57
+    },
+    {
+      "num_tasks": 20,
+      "algorithm": "HEFT",
+      "mean_scheduling_time_ms": 0.15,
+      "mean_makespan_sec": 134.25
+    },
+    {
+      "num_tasks": 20,
+      "algorithm": "Proposed-RiskAware",
+      "mean_scheduling_time_ms": 0.33,
+      "mean_makespan_sec": 134.19
+    },
+    {
+      "num_tasks": 50,
+      "algorithm": "Bounded-ACO",
+      "mean_scheduling_time_ms": 239.05,
+      "mean_makespan_sec": 340.93
+    },
+    {
+      "num_tasks": 50,
+      "algorithm": "Greedy-EFT",
+      "mean_scheduling_time_ms": 0.32,
+      "mean_makespan_sec": 265.91
+    },
+    {
+      "num_tasks": 50,
+      "algorithm": "HEFT",
+      "mean_scheduling_time_ms": 0.33,
+      "mean_makespan_sec": 301.53
+    },
+    {
+      "num_tasks": 50,
+      "algorithm": "Proposed-RiskAware",
+      "mean_scheduling_time_ms": 0.72,
+      "mean_makespan_sec": 290.33
+    },
+    {
+      "num_tasks": 100,
+      "algorithm": "Bounded-ACO",
+      "mean_scheduling_time_ms": 875.16,
+      "mean_makespan_sec": 823.79
+    },
+    {
+      "num_tasks": 100,
+      "algorithm": "Greedy-EFT",
+      "mean_scheduling_time_ms": 1.22,
+      "mean_makespan_sec": 543.38
+    },
+    {
+      "num_tasks": 100,
+      "algorithm": "HEFT",
+      "mean_scheduling_time_ms": 1.36,
+      "mean_makespan_sec": 581.2
+    },
+    {
+      "num_tasks": 100,
+      "algorithm": "Proposed-RiskAware",
+      "mean_scheduling_time_ms": 2.86,
+      "mean_makespan_sec": 566.23
+    },
+    {
+      "num_tasks": 150,
+      "algorithm": "Bounded-ACO",
+      "mean_scheduling_time_ms": 1353.7,
+      "mean_makespan_sec": 1301.86
+    },
+    {
+      "num_tasks": 150,
+      "algorithm": "Greedy-EFT",
+      "mean_scheduling_time_ms": 1.9,
+      "mean_makespan_sec": 856.74
+    },
+    {
+      "num_tasks": 150,
+      "algorithm": "HEFT",
+      "mean_scheduling_time_ms": 2.04,
+      "mean_makespan_sec": 897.22
+    },
+    {
+      "num_tasks": 150,
+      "algorithm": "Proposed-RiskAware",
+      "mean_scheduling_time_ms": 4.44,
+      "mean_makespan_sec": 847.13
+    }
+  ]
+}

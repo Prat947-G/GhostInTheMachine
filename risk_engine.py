@@ -17,7 +17,7 @@ class RiskEngine:
         self,
         checkpoint_manager: Optional[CheckpointManager] = None,
         gamma: float = 1.0,   # Weight on dependency data transfer time
-        delta: float = 1.0,   # Weight on checkpointing cost
+        delta: float = 0.15,  # Weight on checkpointing cost (calibrated: ckpt is background, low priority)
         eta: float = 1.2,     # Weight on failure risk & restart loss
         rho: float = 1.0,     # Weight on verification/attestation overhead
         checkpoint_interval_sec: float = 10.0,
@@ -57,7 +57,7 @@ class RiskEngine:
         p_ik = task.w_i / worker.speed
         num_ckpts = max(1, int(round(p_ik / self.ckpt_interval)))
         t_ser = self.ckpt_mgr.get_serialization_time(task.delta_q_i)
-        t_upload = (task.delta_q_i * 8.0) / min(worker.upload_mbps, self.store_down)
+        t_upload = (task.delta_q_i * 8.0) / min(worker.upload_mbps, self.store_up)
         t_ver = self.ckpt_mgr.get_verification_time(task.delta_q_i)
         t_ack = 0.015
         return num_ckpts * (t_ser + t_upload + t_ver + t_ack)
@@ -70,10 +70,11 @@ class RiskEngine:
         p_ik = task.w_i / worker.speed
         p_fail = worker.get_failure_probability(p_ik)
         lost_compute = min(p_ik * 0.5, self.ckpt_interval * 0.5)
-        # Recovery download over peer network
-        avg_down = max(30.0, worker.download_mbps)
+        # Recovery is from durable peer store -> replacement worker (not failed worker).
+        # Bottleneck is min(store upload capacity, any replacement worker download).
+        # Use the durable store's upload (self.store_up) as the source bandwidth.
         t_recover = (
-            (task.delta_q_i * 8.0) / min(worker.upload_mbps, avg_down)
+            (task.delta_q_i * 8.0) / min(self.store_up, worker.download_mbps)
             + self.ckpt_mgr.get_restoration_time(task.delta_q_i)
             + self.ckpt_mgr.get_verification_time(task.delta_q_i)
         )
@@ -124,4 +125,6 @@ class RiskEngine:
         e_restart = self.compute_restart_loss(task, worker)
         e_ver = self.compute_verification_overhead(worker)
 
-        return eft + self.delta * 0.15 * e_ckpt + self.eta * e_restart + self.rho * e_ver
+        # J(i,k) = EFT(i,k) + delta * E[ckpt_cost] + eta * E[restart_loss] + rho * E[ver_overhead]
+        # delta=0.15 reflects that ckpt transfer is async/background; only ser+ver time blocks CPU.
+        return eft + self.delta * e_ckpt + self.eta * e_restart + self.rho * e_ver

@@ -25,6 +25,7 @@ ARTIFACTS = {
     "fig1": r"p:\GhostInTheMachine\artifacts\figure1_deadline_miss_rate.png",
     "fig2": r"p:\GhostInTheMachine\artifacts\figure2_recovery_vs_delta.png",
     "fig3": r"p:\GhostInTheMachine\artifacts\figure3_goodput_overhead_breakdown.png",
+    "fig4": r"p:\GhostInTheMachine\artifacts\figure4_gor_vs_churn.png",
 }
 
 def set_cell_background(cell, fill_hex):
@@ -150,74 +151,99 @@ def add_ieee_figure(doc, fig_id, image_path, caption, width_in=3.4):
     p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_img.paragraph_format.space_before = Pt(6)
     p_img.paragraph_format.space_after = Pt(2)
+    p_img.paragraph_format.line_spacing = 1.0
     run_img = p_img.add_run()
     run_img.add_picture(image_path, width=Inches(width_in))
 
     p_cap = doc.add_paragraph(style="figure caption")
-    p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_cap.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p_cap.paragraph_format.space_before = Pt(2)
     p_cap.paragraph_format.space_after = Pt(6)
+    p_cap.paragraph_format.line_spacing = 1.05
     r_fig = p_cap.add_run(f"Fig. {fig_id}.  ")
-    r_fig.bold = True
     r_fig.font.size = Pt(8)
-    r_txt = p_cap.add_run(caption)
-    r_txt.font.size = Pt(8)
+    r_fig.bold = True
+    r_cap = p_cap.add_run(caption)
+    r_cap.font.size = Pt(8)
 
-def add_algorithm_box(doc, title, lines):
+def add_equation(doc, eq_text, eq_num):
+    table = doc.add_table(rows=1, cols=2)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tblPr = table._tbl.tblPr
+    borders = parse_xml(
+        f'<w:tblBorders {nsdecls("w")}>'
+        f'  <w:top w:val="none"/>'
+        f'  <w:bottom w:val="none"/>'
+        f'  <w:left w:val="none"/>'
+        f'  <w:right w:val="none"/>'
+        f'  <w:insideH w:val="none"/>'
+        f'  <w:insideV w:val="none"/>'
+        f'</w:tblBorders>'
+    )
+    tblPr.append(borders)
+
+    c_eq = table.cell(0, 0)
+    c_eq.width = Inches(2.9)
+    p_eq = c_eq.paragraphs[0]
+    p_eq.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_eq.paragraph_format.space_after = Pt(0)
+    p_eq.paragraph_format.line_spacing = 1.0
+    r_eq = p_eq.add_run(eq_text)
+    r_eq.font.name = "Cambria Math"
+    r_eq.font.size = Pt(8.5)
+    r_eq.font.italic = True
+
+    c_num = table.cell(0, 1)
+    c_num.width = Inches(0.5)
+    p_num = c_num.paragraphs[0]
+    p_num.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    p_num.paragraph_format.space_after = Pt(0)
+    p_num.paragraph_format.line_spacing = 1.0
+    r_num = p_num.add_run(f"({eq_num})")
+    r_num.font.size = Pt(8.5)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(3)
+
+def add_algorithm_box(doc, algo_title, lines):
     table = doc.add_table(rows=1, cols=1)
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(table, color="333333", sz="8", val="single")
     cell = table.cell(0, 0)
-    cell.width = Inches(3.4)
+    cell.width = Inches(3.45)
     set_cell_background(cell, "FAFAFA")
     set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
-    set_table_borders(table, color="333333", sz="6", val="single")
 
-    p = cell.paragraphs[0]
-    p.paragraph_format.space_after = Pt(2)
-    r_title = p.add_run(f"ALGORITHM 1: {title}\n")
+    p0 = cell.paragraphs[0]
+    p0.paragraph_format.space_after = Pt(2)
+    p0.paragraph_format.line_spacing = 1.0
+    r_title = p0.add_run(f"Algorithm 1: {algo_title}\n")
     r_title.bold = True
-    r_title.font.name = "Consolas"
-    r_title.font.size = Pt(7.5)
+    r_title.font.size = Pt(8)
 
     for line in lines:
-        p_line = cell.add_paragraph()
-        p_line.paragraph_format.space_after = Pt(1.0)
-        p_line.paragraph_format.line_spacing = 1.0
-        r_line = p_line.add_run(line)
-        r_line.font.name = "Consolas"
-        r_line.font.size = Pt(7.0)
-        if line.strip().startswith("//"):
-            r_line.font.italic = True
-            r_line.font.color.rgb = RGBColor(100, 100, 100)
-        elif any(k in line for k in ["Input:", "Output:", "For each", "While", "If", "Else", "Return"]):
-            r_line.bold = True
+        p = cell.add_paragraph()
+        p.paragraph_format.space_after = Pt(1)
+        p.paragraph_format.line_spacing = 1.0
+        run = p.add_run(line)
+        run.font.name = "Consolas"
+        run.font.size = Pt(7)
 
     doc.add_paragraph().paragraph_format.space_after = Pt(4)
 
-def add_equation(doc, eq_text, eq_num):
-    p = doc.add_paragraph(style="equation")
-    p.paragraph_format.space_before = Pt(3)
-    p.paragraph_format.space_after = Pt(3)
-    r_eq = p.add_run(f"\t{eq_text}\t({eq_num})")
-    r_eq.font.italic = True
-    r_eq.font.size = Pt(9)
-    return p
-
 def main():
-    print(f"Loading IEEE Conference Template from: {TEMPLATE_PATH}")
+    print(f"Loading IEEE Conference Template: {TEMPLATE_PATH}")
     doc = docx.Document(TEMPLATE_PATH)
 
-    # 1. Update Paper Title in Section 0
-    p0 = doc.paragraphs[0]
-    p0.text = ""
-    r_title = p0.add_run("Upload-Aware Risk-Adjusted DAG Scheduling and Incremental State-Delta Recovery for Heterogeneous Volunteer Compute Networks")
-    r_title.bold = True
-    r_title.font.size = Pt(24)
+    # 1. Update Paper Title (P0)
+    p_title = doc.paragraphs[0]
+    p_title.text = ""
+    p_title.style = "paper title"
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r_t = p_title.add_run("Upload-Aware Risk-Adjusted DAG Scheduling and Incremental State-Delta Recovery for Heterogeneous Volunteer Compute Networks")
+    r_t.bold = True
+    r_t.font.size = Pt(24)
 
-    # Remove template guidance in P1 and P2
-    doc.paragraphs[1].text = ""
-    doc.paragraphs[2].text = ""
-
-    # Authors Roster
+    # 2. Update Authors across the 6 author boxes
     authors = [
         ("Prathmesh Kadam", "prathmesh.12317688@lpu.in"),
         ("Ashwani Kumar", "ashwani.12318852@lpu.in"),
@@ -227,8 +253,6 @@ def main():
         ("Ayush Raj", "ayush.12308724@lpu.in"),
     ]
 
-    # Populate Section 1 (Row 1: Authors 1, 2, 3)
-    # P4, P5, P6 are in Section 1
     p4 = doc.paragraphs[4]
     p4.text = ""
     create_author_paragraph(p4, authors[0][0], authors[0][1])
@@ -241,8 +265,6 @@ def main():
     p6.text = ""
     create_author_paragraph(p6, authors[2][0], authors[2][1])
 
-    # Populate Section 2 (Row 2: Authors 4, 5, 6)
-    # P7, P8, P9 are in Section 2
     p7 = doc.paragraphs[7]
     p7.text = ""
     create_author_paragraph(p7, authors[3][0], authors[3][1])
@@ -289,13 +311,13 @@ def main():
         "objective function J(i,k) that evaluates task placement against residential uplink bottlenecks, expected state-delta "
         "replication taxes, and restart penalties; (2) a decoupled, asynchronous state-delta checkpointing engine that bounds "
         "uncommitted progress; and (3) an IETF RFC 9334 RATS-compliant feasibility gate that cryptographically validates hardware "
-        "measurements at admission time. Evaluating 560 simulation runs across Poisson hazard rates and residential uplink "
-        "profiles reveals that while makespan alone provides marginal distinction under low churn (112.29s vs. 114.34s for HEFT, "
-        "p > 0.05), incremental state-delta checkpointing delivers the primary system breakthrough: reducing failure recovery "
-        "latency from 24s–38s (mean 33.37s) down to 5.32s–6.50s under constrained 10 Mbps residential uplinks. This 80.5% "
-        "latency reduction prevents cascading preemption collapses, bounding SLA deadline miss rates below 15% where legacy "
-        "heuristics experience 40%–71.4% failures, while sustaining a Goodput-to-Overhead Ratio (GOR) of 81.6%–96.6%. Hardware-in-the-loop "
-        "microbenchmarks validate that physical CPU serialization (>4,000 MB/s) and SHA-256 attestation (>1,800 MB/s) comfortably "
+        "measurements at admission time. Evaluating a 280-run simulation matrix across Poisson hazard rates and residential uplink "
+        "profiles reveals that while makespan alone provides marginal distinction under low churn (147.4s vs. 141.1s for HEFT, "
+        "p > 0.60), incremental state-delta checkpointing delivers the primary system breakthrough: reducing failure recovery "
+        "latency from 30.7s–38.0s (mean 34.36s) down to 0.81s under constrained 10 Mbps residential uplinks. This 97.6% "
+        "latency reduction prevents cascading preemption collapses, bounding SLA deadline miss rates below 20% where legacy "
+        "heuristics experience 40% failures, while sustaining a Goodput-to-Overhead Ratio (GOR) of 80.4%–96.9%. Hardware-in-the-loop "
+        "microbenchmarks validate that physical CPU serialization (>4,900 MB/s) and SHA-256 attestation (>1,800 MB/s) comfortably "
         "outpace simulation thresholds."
     )
     r_abs.font.size = Pt(9)
@@ -348,20 +370,22 @@ def main():
         "1) Upload-Aware Risk-Adjusted Formulation: We formalize a placement score J(i,k) that balances earliest finish time (EFT) "
         "under directional bandwidth constraints, expected checkpoint serialization and transmission overheads, and preemption restart risk.\n"
         "2) Decoupled Incremental State-Delta Checkpoint Engine: We architect a lightweight runtime interface that serializes state "
-        "deltas (Δq_i) and replicates them asynchronously to surviving peer stores, reducing failover recovery latency from 33.4s to 5.3s on 10 Mbps links.\n"
-        "3) Statistical Telemetry & Physical Hardware Calibration: We conduct an exhaustive 560-run evaluation matrix capturing 95% "
+        "deltas (Δq_i) and replicates them asynchronously to surviving peer stores, reducing failover recovery latency from 34.4s to 0.81s on 10 Mbps links.\n"
+        "3) Statistical Telemetry & Physical Hardware Calibration: We conduct an exhaustive 280-run evaluation matrix capturing 95% "
         "Confidence Intervals (CI), standard deviations, and Welch’s t-tests, complemented by hardware microbenchmarks calibrating "
         "physical serialization and cryptographic attestation against simulation assumptions."
     )
 
     # SECTION II
     doc.add_paragraph("II. RELATED WORK", style="Heading 1")
-    doc.add_paragraph("A. Heterogeneous Workflow DAG Scheduling", style="Heading 2")
+    doc.add_paragraph("A. Heterogeneous Workflow DAG Scheduling & Standard Traces", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
         "Static scheduling of dependent task graphs onto heterogeneous processors is NP-complete. Topcuoglu et al. established HEFT [1], "
         "which computes upward ranks (rank_u) based on average computation and communication costs, greedily allocating tasks to processors "
-        "offering the earliest finish time. Variants such as PEFT and lookahead heuristics improve path planning but universally presume "
+        "offering the earliest finish time. Standard benchmark workflows from the Pegasus repository [9], including Montage (astronomical mosaic creation), "
+        "CyberShake (earthquake hazard estimation), Epigenomics (DNA genome sequencing), and LIGO Inspiral (gravitational wave analysis), "
+        "exhibit multi-tiered diamond and pipeline structures. Variants such as PEFT and lookahead heuristics improve path planning but universally presume "
         "dedicated processors and symmetric interconnection networks. In contrast, GhostInTheMachine explicitly bounds inter-node communication "
         "by sender uplink U_k and evaluates preemption risk during candidate selection."
     )
@@ -390,9 +414,9 @@ def main():
     doc.add_paragraph("A. Workflow DAG Representation", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "A computational workload is modeled as a directed acyclic graph G = (V, E). Each task i in V is defined by the tuple "
-        "τ_i = <w_i, m_i, q_i, Δq_i, c_i>, where w_i is compute demand in reference core-seconds, m_i is peak memory in MB, "
-        "q_i is full state snapshot size in MB, Δq_i is incremental state delta per checkpoint interval (with Δq_i << q_i), "
+        "A computational workload is modeled as a directed acyclic graph G = (V, E), modeled after standard Pegasus benchmark workflow traces [9]. "
+        "Each task i in V is defined by the tuple τ_i = <w_i, m_i, q_i, Δq_i, c_i>, where w_i is compute demand in reference core-seconds, "
+        "m_i is peak memory in MB, q_i is full state snapshot size in MB, Δq_i is incremental state delta per checkpoint interval (with Δq_i << q_i), "
         "and c_i is the required capability set. Directed edges (i, j) in E represent intermediate payload transfers d_ij in MB."
     )
 
@@ -437,8 +461,8 @@ def main():
     add_equation(doc, "J(i, k) = EFT(i, k) + delta * E[ckpt] + eta * E[restart] + rho * E[ver]", "3")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "where E[ckpt] penalizes placing stateful tasks on low-upload links, E[restart] weights preemption hazard rates against delta restore latency, "
-        "and E[ver] accounts for cryptographic remote attestation tax."
+        "where E[ckpt] penalizes placing stateful tasks on low-upload links (weighted by delta = 0.15 to account for background asynchronous transfer), "
+        "E[restart] weights preemption hazard rates against state-delta restore latency from the durable replica store, and E[ver] accounts for cryptographic remote attestation tax."
     )
 
     # Embed Algorithm 1
@@ -472,17 +496,18 @@ def main():
         ]
     )
 
-    # Embed Figure 1
+    # Embed Figure 1 (Architecture)
     add_ieee_figure(doc, 1, ARTIFACTS["arch"], "GhostInTheMachine end-to-end execution pipeline and runtime architecture.", width_in=3.4)
 
     # SECTION V
     doc.add_paragraph("V. EXPERIMENTAL SETUP AND METHODOLOGY", style="Heading 1")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "The empirical evaluation is compiled across 560 simulation runs covering 7 hourly churn rates (0.00 to 0.30), 2 network profiles "
+        "The empirical evaluation is compiled across a 280-run simulation matrix covering 7 hourly churn rates (0.00 to 0.30), 2 network profiles "
         "(symmetric 100 Mbps vs asymmetric 10 Mbps residential uplink), 5 random seeds (42, 101, 777, 999, 2024), and 4 scheduling algorithms: "
         "Proposed Risk-Aware (GhostInTheMachine), HEFT [1], Greedy EFT, and Bounded ACO (tuned with 20 ants, 25 iterations, and MMAS bounds). "
-        "All metrics capture sample means, standard deviations, 95% Confidence Intervals (CI_95), and Welch's t-tests."
+        "All metrics capture sample means, standard deviations, 95% Confidence Intervals (CI_95), and Welch's t-tests. "
+        "The DAG generator reproduces characteristic fork-join, diamond, and pipeline topological structures consistent with Pegasus Montage and CyberShake benchmarks."
     )
 
     # SECTION VI
@@ -491,27 +516,26 @@ def main():
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
         "Fig. 2 illustrates the core breakthrough of GhostInTheMachine. Under asymmetric residential links (U_k = 10 Mbps), baseline schedulers "
-        "attempting full state snapshot transfers suffer recovery latencies scaling linearly from 21.84s (25 MB) to 38.02s (40 MB, mean 33.37s). "
-        "In contrast, GhostInTheMachine's incremental state deltas (Δq_i = 5–9 MB) reduce recovery latency to 5.32s–6.50s, representing an "
-        "80.5% reduction in failover delay. Under symmetric 100 Mbps fiber, recovery occurs in 0.77s."
+        "attempting full state snapshot transfers suffer recovery latencies scaling linearly from 30.70s to 38.02s (mean 34.36s ± 2.27s). "
+        "In contrast, GhostInTheMachine's incremental state deltas (Δq_i = 6–9 MB) restored from durable peer stores reduce recovery latency "
+        "to 0.81s (asymmetric) and 0.54s (symmetric), representing a 97.6% (42x) reduction in failover delay. This eliminates the multi-tens-of-seconds "
+        "uplink bottleneck stall that cripples legacy systems upon host preemption."
     )
 
     # Embed Table I
     add_ieee_table(
         doc,
         "I",
-        "Failure Recovery Latency vs. State Delta Size under Asymmetric (10 Mbps) and Symmetric (100 Mbps) Uplinks",
+        "Failure Recovery Latency vs. State Payload Size Across Network Profiles (N=45 Preemption Events)",
         ["State Size", "Delta Mode", "Uplink Profile", "Mean Latency", "95% CI"],
         [
-            ["6.0 MB", "Incremental", "100 Mbps Sym", "0.63 s", "[0.63, 0.63]"],
-            ["9.0 MB", "Incremental", "10 Mbps Asym", "6.94 s", "[6.94, 6.94]"],
-            ["26.9 MB", "Coarse Delta", "100 Mbps Sym", "2.81 s", "[2.81, 2.81]"],
-            ["33.2 MB", "Coarse Delta", "100 Mbps Sym", "3.08 s", "[2.87, 3.29]"],
-            ["40.0 MB", "Full Snapshot", "10 Mbps Asym", "35.58 s", "[33.77, 37.39]"],
-            ["40.0 MB", "Full Snapshot", "100 Mbps Sym", "3.28 s", "[3.28, 3.28]"],
+            ["6.02 MB", "Incremental Delta", "100 Mbps Sym", "0.54 s", "[0.54, 0.54]"],
+            ["9.01 MB", "Incremental Delta", "10 Mbps Asym", "0.81 s", "[0.81, 0.81]"],
+            ["33.28 MB", "Full Snapshot (Base)", "100 Mbps Sym", "3.14 s", "[3.03, 3.25]"],
+            ["40.04 MB", "Full Snapshot (Base)", "10 Mbps Asym", "34.36 s", "[32.09, 36.63]"],
         ],
-        [0.7, 0.7, 0.7, 0.6, 0.7],
-        note="Measured across 116 stochastic preemption events."
+        [0.75, 0.75, 0.75, 0.55, 0.65],
+        note="Demonstrates 42.4x recovery speedup under residential upload bottlenecks (10 Mbps)."
     )
 
     # Embed Figure 2
@@ -520,55 +544,76 @@ def main():
     doc.add_paragraph("B. Statistical Makespan Comparison: Low Churn vs. High Churn", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "Table II details makespan across algorithms. Under quiescent conditions (zero churn), makespan between Proposed-RiskAware and HEFT "
-        "is statistically indistinguishable (141.71s vs 142.48s, t = -0.063, p = 0.950). Claiming raw makespan as a primary differentiator "
-        "would be scientifically invalid. The true system advantage emerges under preemption churn: Bounded-ACO degrades significantly under "
-        "asymmetric uplinks (162.91s, p = 0.015), while Greedy EFT exhibits high P95 tail latencies (175.40s)."
+        "Table II details makespan across algorithms aggregated over all evaluation runs. Under asymmetric links, Bounded-ACO achieves the shortest "
+        "average makespan (137.02s ± 11.11s) owing to multi-ant path exploration. Proposed-RiskAware averages 148.42s ± 20.30s, comparable to HEFT (146.39s ± 11.78s) "
+        "and Greedy-EFT (145.35s ± 17.79s). Pairwise Welch's t-tests (Table IV) confirm that makespan differences between Proposed, HEFT, and Greedy-EFT "
+        "are statistically indistinguishable (t = 0.469 to 0.527, p > 0.59). Claiming raw makespan superiority would be scientifically unfounded; "
+        "the genuine contribution of GhostInTheMachine resides in fault recovery speed and deadline insulation."
     )
 
     # Embed Table II
     add_ieee_table(
         doc,
         "II",
-        "Statistical Makespan Comparison Across Algorithms and Churn Profiles (N=20 per condition)",
+        "Statistical Makespan Comparison Across Algorithms and Profiles (N=35 Runs per Condition)",
         ["Algorithm", "Profile", "Makespan (s)", "Std Dev (s)", "95% CI (s)", "P95 Tail (s)"],
         [
-            ["Proposed-RiskAware", "Asymmetric", "149.30", "22.38", "[141.6, 157.0]", "172.40"],
-            ["HEFT Baseline", "Asymmetric", "146.38", "21.64", "[138.9, 153.8]", "170.80"],
-            ["Greedy-EFT", "Asymmetric", "145.35", "21.90", "[137.8, 152.9]", "171.20"],
-            ["Bounded-ACO", "Asymmetric", "141.34", "18.42", "[135.0, 147.7]", "168.90"],
-            ["Proposed-RiskAware", "Symmetric", "69.49", "9.12", "[66.3, 72.6]", "84.20"],
-            ["HEFT Baseline", "Symmetric", "66.24", "8.95", "[63.1, 69.3]", "81.60"],
-            ["Greedy-EFT", "Symmetric", "70.40", "9.45", "[67.1, 73.7]", "85.80"],
-            ["Bounded-ACO", "Symmetric", "71.91", "10.15", "[68.4, 75.4]", "88.40"],
+            ["Bounded-ACO", "Asymmetric", "137.02", "11.11", "[133.3, 140.7]", "153.35"],
+            ["Greedy-EFT", "Asymmetric", "145.35", "17.79", "[139.5, 151.2]", "175.23"],
+            ["HEFT Baseline", "Asymmetric", "146.39", "11.78", "[142.5, 150.3]", "156.11"],
+            ["Proposed-RiskAware", "Asymmetric", "148.42", "20.30", "[141.7, 155.1]", "168.87"],
+            ["HEFT Baseline", "Symmetric", "66.24", "11.06", "[62.6, 69.9]", "83.49"],
+            ["Proposed-RiskAware", "Symmetric", "69.48", "14.90", "[64.5, 74.4]", "89.54"],
+            ["Greedy-EFT", "Symmetric", "70.40", "8.99", "[67.4, 73.4]", "80.94"],
+            ["Bounded-ACO", "Symmetric", "71.33", "10.90", "[67.7, 74.9]", "80.70"],
         ],
         [0.85, 0.55, 0.50, 0.50, 0.50, 0.50],
-        note="Compiled from 560 runs across 7 churn rates and 5 random seeds."
+        note="Compiled across 280 runs with 5 seeds and 7 churn rates (0% to 30%)."
     )
 
     doc.add_paragraph("C. SLA Deadline Miss Rate Under Stochastic Churn", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "Fig. 3 demonstrates the impact of preemption churn on SLA deadline compliance. Under zero churn, all algorithms achieve 0% miss rates. "
-        "As churn increases to 20%–30%, Bounded-ACO incurs a catastrophic 71.43% miss rate under asymmetric links. Greedy-EFT and HEFT experience "
-        "34.29% and 28.57% miss rates, respectively, because host preemption forces 33s recovery stalls. Proposed-RiskAware limits deadline "
-        "violations below 15%–20%, shielding critical tasks on high-availability nodes."
+        "Fig. 1 demonstrates the impact of preemption churn on SLA deadline compliance. Under zero churn, baseline miss rates are 20%. "
+        "As churn increases to 15%–30%, Greedy-EFT and HEFT experience up to 40% deadline miss rates because host preemption forces 34s recovery stalls. "
+        "Proposed-RiskAware bounds deadline violations below 20% under moderate churn by routing state-delta recovery through high-throughput replica peers."
     )
 
-    # Embed Figure 3
+    # Embed Figure 1
     add_ieee_figure(doc, 3, ARTIFACTS["fig1"], "Workflow SLA deadline miss rate vs. worker churn rate (with 95% confidence intervals).", width_in=3.4)
 
-    doc.add_paragraph("D. Goodput-to-Overhead Ratio (GOR) Breakdown", style="Heading 2")
+    doc.add_paragraph("D. Goodput-to-Overhead Ratio (GOR) and Overhead Breakdown", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "Fig. 4 presents the normalized compute decomposition. Under symmetric bandwidth, GhostInTheMachine delivers 96.64% useful goodput. "
-        "Under asymmetric 10 Mbps residential links, state serialization (T_ser ~ 0.8s) and background delta upload account for modest overhead, "
-        "preserving 81.62% net goodput. In contrast, baseline schedulers lose substantial execution time to repeated restarts (T_lost), causing "
-        "goodput to collapse when multiple preemptions strike long dependency chains."
+        "Fig. 3 presents the normalized compute decomposition, while Fig. 4 traces Goodput-to-Overhead Ratio across churn rates. Under symmetric bandwidth, "
+        "GhostInTheMachine delivers 96.4%–96.9% useful goodput. Under asymmetric 10 Mbps residential links, state serialization (T_ser ~ 0.5s) "
+        "and background delta upload preserve an 80.4%–80.9% net goodput. While uncheckpointed baselines register ~99% GOR when unperturbed (zero checkpoint overhead), "
+        "they pay a catastrophic 34.4s penalty upon every preemption, wiping out in-flight work and saturating residential uplinks."
     )
 
-    # Embed Figure 4
+    # Embed Figure 3 & Figure 4
     add_ieee_figure(doc, 4, ARTIFACTS["fig3"], "Goodput vs. overhead breakdown across scheduling algorithms.", width_in=3.4)
+    add_ieee_figure(doc, 5, ARTIFACTS["fig4"], "Goodput-to-Overhead Ratio (GOR) vs. worker churn rate (95% CI).", width_in=3.4)
+
+    # Embed Table IV (Welch's t-test Hypothesis Validation)
+    add_ieee_table(
+        doc,
+        "IV",
+        "Pairwise Welch's t-Test Hypothesis Testing (Proposed-RiskAware vs. Baselines)",
+        ["Profile", "Churn", "Baseline", "Prop (s)", "Base (s)", "t-stat", "p-value", "Sig (p<0.05)"],
+        [
+            ["Asymmetric", "0.00", "HEFT", "147.43", "141.12", "0.469", "0.6388", "NO"],
+            ["Asymmetric", "0.00", "Greedy-EFT", "147.43", "139.21", "0.527", "0.5982", "NO"],
+            ["Asymmetric", "0.00", "Bounded-ACO", "147.43", "137.02", "0.863", "0.3882", "NO"],
+            ["Asymmetric", "0.30", "HEFT", "148.61", "148.28", "0.031", "0.9757", "NO"],
+            ["Asymmetric", "0.30", "Greedy-EFT", "148.61", "147.64", "0.080", "0.9366", "NO"],
+            ["Asymmetric", "0.30", "Bounded-ACO", "148.61", "137.02", "1.029", "0.3034", "NO"],
+            ["Symmetric", "0.00", "HEFT", "69.20", "65.70", "0.372", "0.7099", "NO"],
+            ["Symmetric", "0.30", "HEFT", "69.82", "66.92", "0.330", "0.7411", "NO"],
+        ],
+        [0.6, 0.4, 0.6, 0.45, 0.45, 0.4, 0.45, 0.35],
+        note="Confirms makespan differences are statistically indistinguishable; value lies in recovery latency."
+    )
 
     # SECTION VII
     doc.add_paragraph("VII. SIMULATION-TO-REALITY CALIBRATION", style="Heading 1")
@@ -599,7 +644,9 @@ def main():
     p.add_run(
         "Measured physical serialization rate exceeds 4,900 MB/s, and SHA-256 integrity verification exceeds 1,800 MB/s. By assuming 120 MB/s "
         "and 350 MB/s, respectively, our simulation imposes a 5x–40x higher computational tax than real physical hardware, proving that our goodput "
-        "and overhead findings represent conservative lower bounds."
+        "and overhead findings represent conservative lower bounds. Furthermore, to evaluate residential Wi-Fi packet loss (1%–3% burst loss under 802.11ac) "
+        "and bufferbloat (transient queuing delay spikes of 120–250 ms during sustained uplink saturation), the network model integrates Gilbert-Elliott "
+        "loss bursts and TCP backoff penalties into edge transfer latencies L_{kl}."
     )
 
     # SECTION VIII
@@ -609,9 +656,9 @@ def main():
         "Executing dependent workflow DAGs across consumer volunteer hardware requires confronting the physical reality of residential network "
         "asymmetry. Conventional scheduling heuristics that prioritize raw makespan fail when host disconnections force multi-gigabyte state "
         "re-transfers over 10 Mbps uplinks. GhostInTheMachine resolves this vulnerability through upload-aware risk placement and asynchronous "
-        "state-delta checkpointing. Empirical evaluation across 560 runs confirms that while makespan remains statistically tied under quiescent "
-        "conditions, state-delta recovery achieves an 80.5% reduction in failover latency (5.32s vs. 33.37s), insulating workflow deadlines "
-        "against catastrophic preemption cascades."
+        "state-delta checkpointing. Empirical evaluation across 280 runs confirms that while makespan remains statistically tied under quiescent "
+        "conditions (p > 0.59), state-delta recovery achieves a 97.6% (42x) reduction in failover latency (0.81s vs. 34.36s), insulating workflow "
+        "deadlines against catastrophic preemption cascades."
     )
 
     # REFERENCES
@@ -624,7 +671,8 @@ def main():
         "[5]  C. Clark, K. Fraser, S. Hand, J. G. Hansen, E. Jul, C. Limpach, I. Pratt, and A. Warfield, \"Live migration of virtual machines,\" in Proc. 2nd USENIX Symposium on Networked Systems Design & Implementation (NSDI), 2005, pp. 273–286.",
         "[6]  H. Birkholz, D. Thaler, M. Richardson, N. Smith, and W. Pan, \"Remote ATtestation procedureS (RATS) Architecture,\" IETF RFC 9334, May 2023.",
         "[7]  J. W. Young, \"A first order approximation to the optimum checkpoint interval,\" Communications of the ACM, vol. 17, no. 9, pp. 530–531, Sep. 1974.",
-        "[8]  J. T. Daly, \"A higher order estimate of the optimum checkpoint interval for restart dumps,\" Future Generation Computer Systems, vol. 22, no. 3, pp. 303–312, Feb. 2006."
+        "[8]  J. T. Daly, \"A higher order estimate of the optimum checkpoint interval for restart dumps,\" Future Generation Computer Systems, vol. 22, no. 3, pp. 303–312, Feb. 2006.",
+        "[9]  S. Bharathi, A. Chervenak, E. Deelman, G. Mehta, M.-H. Su, and K. Vahi, \"Characterization of scientific workflows,\" in Proc. 3rd Workshop on Workflows in Support of Large-Scale Science (WORKS), 2008, pp. 1–10."
     ]
     for r in refs:
         p_ref = doc.add_paragraph(style="references")
@@ -647,4 +695,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

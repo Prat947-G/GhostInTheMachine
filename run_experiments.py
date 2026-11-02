@@ -84,6 +84,9 @@ def run_experiment_matrix(
                 for sched in schedulers:
                     current_run += 1
                     t0 = time.time()
+                    # Propagate per-experiment seed to ACO for reproducibility
+                    if hasattr(sched, "set_seed"):
+                        sched.set_seed(seed)
                     # Schedule workflow
                     allocations = sched.schedule(dag, workers, risk_engine)
                     sched_overhead = time.time() - t0

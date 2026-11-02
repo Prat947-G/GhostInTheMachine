@@ -1,4 +1,3 @@
-from collections import defaultdict
 """
 GhostInTheMachine: Experiment Logger & Telemetry Pipeline
 Captures:
@@ -10,6 +9,7 @@ Captures:
 Exports to structured CSV and JSON formats.
 """
 
+from collections import defaultdict
 import csv
 import json
 import os

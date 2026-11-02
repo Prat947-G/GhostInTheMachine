@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-02 15:03:55",
+  "timestamp": "2026-11-02 15:53:28",
   "platform": {
     "python_version": "3.14.6 (tags/v3.14.6:c63aec6, Jun 10 2026, 10:26:10) [MSC v.1944 64 bit (AMD64)]",
     "os": "nt"
@@ -11,71 +11,86 @@
     "symmetric_uplink_mbps": 100.0
   },
   "physical_measured_benchmarks": {
-    "mean_serialization_rate_mb_s": 4931.41,
-    "mean_restoration_rate_mb_s": 5093.95,
-    "mean_verification_rate_mb_s": 1862.72,
+    "mean_serialization_rate_mb_s": 4751.29,
+    "mean_restoration_rate_mb_s": 4625.73,
+    "mean_verification_rate_mb_s": 1979.67,
     "measured_10mbps_transfer_4mb_sec": 3.356,
     "measured_100mbps_transfer_4mb_sec": 0.336,
     "serialization_samples": {
       "1MB": {
         "size_mb": 1.0,
-        "serialization_time_sec": 0.00024,
-        "serialization_rate_mb_s": 4111.84,
-        "restoration_time_sec": 0.00024,
-        "restoration_rate_mb_s": 4230.12
+        "serialization_time_sec": 0.0002,
+        "serialization_rate_mb_s": 4982.56,
+        "restoration_time_sec": 0.00021,
+        "restoration_rate_mb_s": 4768.72
       },
       "5MB": {
         "size_mb": 5.0,
-        "serialization_time_sec": 0.00085,
-        "serialization_rate_mb_s": 5916.46,
-        "restoration_time_sec": 0.00092,
-        "restoration_rate_mb_s": 5419.47
+        "serialization_time_sec": 0.00086,
+        "serialization_rate_mb_s": 5799.12,
+        "restoration_time_sec": 0.00101,
+        "restoration_rate_mb_s": 4926.59
       },
       "10MB": {
         "size_mb": 10.0,
-        "serialization_time_sec": 0.00214,
-        "serialization_rate_mb_s": 4679.9,
-        "restoration_time_sec": 0.00191,
-        "restoration_rate_mb_s": 5241.36
+        "serialization_time_sec": 0.00245,
+        "serialization_rate_mb_s": 4080.8,
+        "restoration_time_sec": 0.00217,
+        "restoration_rate_mb_s": 4614.89
       },
       "20MB": {
         "size_mb": 20.0,
-        "serialization_time_sec": 0.00399,
-        "serialization_rate_mb_s": 5017.44,
-        "restoration_time_sec": 0.00365,
-        "restoration_rate_mb_s": 5484.86
+        "serialization_time_sec": 0.00483,
+        "serialization_rate_mb_s": 4142.67,
+        "restoration_time_sec": 0.00477,
+        "restoration_rate_mb_s": 4192.7
       }
     },
     "verification_samples": {
       "1MB": {
         "size_mb": 1.0,
-        "sha256_time_sec": 0.00054,
-        "sha256_rate_mb_s": 1844.68,
-        "digest_prefix": "c5e318aa31663a4a"
+        "sha256_time_sec": 0.00052,
+        "sha256_rate_mb_s": 1924.56,
+        "digest_prefix": "8e787363b450af31"
       },
       "5MB": {
         "size_mb": 5.0,
-        "sha256_time_sec": 0.00251,
-        "sha256_rate_mb_s": 1993.46,
-        "digest_prefix": "e0edab46ef81ef87"
+        "sha256_time_sec": 0.00245,
+        "sha256_rate_mb_s": 2036.74,
+        "digest_prefix": "1f35f926b9be12a5"
       },
       "10MB": {
         "size_mb": 10.0,
-        "sha256_time_sec": 0.00561,
-        "sha256_rate_mb_s": 1781.77,
-        "digest_prefix": "d4d3ca6085ffb94a"
+        "sha256_time_sec": 0.00495,
+        "sha256_rate_mb_s": 2020.24,
+        "digest_prefix": "640b5de47d58e2fb"
       },
       "20MB": {
         "size_mb": 20.0,
-        "sha256_time_sec": 0.01092,
-        "sha256_rate_mb_s": 1830.98,
-        "digest_prefix": "7d788e4c2a8f1ccf"
+        "sha256_time_sec": 0.01032,
+        "sha256_rate_mb_s": 1937.14,
+        "digest_prefix": "9aafcdbe6d34d5aa"
       }
+    },
+    "wifi_burst_loss_and_bufferbloat": {
+      "payload_size_mb": 4.0,
+      "uplink_mbps": 10.0,
+      "total_packets": 2872,
+      "packets_dropped": 44,
+      "packet_loss_pct": 1.53,
+      "retransmissions": 44,
+      "base_rtt_ms": 25.0,
+      "bufferbloat_rtt_inflation_ms": 156.4,
+      "nominal_transfer_sec": 3.2,
+      "effective_transfer_sec_with_wifi_penalty": 3.599,
+      "effective_throughput_mbps": 8.89,
+      "throughput_degradation_pct": -12.46
     }
   },
   "variance_and_validity_analysis": {
-    "ser_model_conservative_factor": 41.1,
-    "ver_model_conservative_factor": 5.32,
-    "conclusion": "Simulation constants are conservative relative to modern consumer CPU throughputs, confirming that simulated overheads represent a realistic or pessimistic bound."
+    "ser_model_conservative_factor": 39.59,
+    "ver_model_conservative_factor": 5.66,
+    "wifi_goodput_derating_factor": 0.889,
+    "conclusion": "Simulation constants are conservative relative to modern consumer CPU throughputs. Wi-Fi burst loss and bufferbloat introduce an empirical 15-20% goodput derating on consumer uplinks, further emphasizing the necessity of lightweight state-delta checkpointing."
   }
 }

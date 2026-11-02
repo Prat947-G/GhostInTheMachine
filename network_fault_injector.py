@@ -154,6 +154,7 @@ class DiscreteEventSimulationEngine:
             # Simulate execution until completion (retrying if preempted)
             max_retries = 5
             retries = 0
+            failed_workers: set = set()   # Track workers that have already failed this task
 
             while compute_completed < compute_needed and retries < max_retries:
                 # Sample preemption time for current worker
@@ -199,21 +200,28 @@ class DiscreteEventSimulationEngine:
                 if step == ttf and compute_completed < compute_needed:
                     # PREEMPTION OCCURRED!
                     retries += 1
+                    failed_workers.add(worker.id)   # Mark as failed for this task
                     lost_work = compute_completed - last_checkpoint_progress if self.enable_checkpointing else compute_completed
                     self.metrics.lost_compute_time_sec += lost_work
 
-                    # Pick a surviving replacement worker
-                    avail_workers = [w for w in self.workers.values() if w.id != worker.id and w.memory_mb >= task.m_i]
+                    # Pick a surviving replacement worker (exclude all previously failed workers)
+                    avail_workers = [
+                        w for w in self.workers.values()
+                        if w.id not in failed_workers and w.memory_mb >= task.m_i
+                    ]
+                    if not avail_workers:
+                        # Fallback: any worker not the immediate previous one
+                        avail_workers = [w for w in self.workers.values() if w.id != worker.id]
                     if not avail_workers:
                         avail_workers = list(self.workers.values())
                     replacement_worker = self.rng.choice(avail_workers)
 
                     if self.enable_checkpointing:
-                        # Restore from latest checkpoint delta transferred from peer replica
+                        # Restore from durable peer replica store (NOT from failed worker).
+                        # Recovery bandwidth: min(durable store upload=100 Mbps, replacement worker download D_k)
                         delta_size = task.delta_q_i
-                        # Transfer state delta over peer uplink U_k to replacement worker download D_repl
-                        peer_uplink = worker.upload_mbps
-                        recovery_bandwidth = min(peer_uplink, replacement_worker.download_mbps)
+                        store_upload_mbps = 100.0   # Durable replica store has symmetric link
+                        recovery_bandwidth = min(store_upload_mbps, replacement_worker.download_mbps)
                         t_xfer = (delta_size * 8.0) / max(0.5, recovery_bandwidth)
                         t_rest = self.ckpt_mgr.get_restoration_time(delta_size)
                         t_v = self.ckpt_mgr.get_verification_time(delta_size)
@@ -221,10 +229,11 @@ class DiscreteEventSimulationEngine:
                         # Rollback progress to last checkpoint
                         compute_completed = last_checkpoint_progress
                     else:
-                        # Baseline without checkpointing: must transfer full state and re-execute from scratch
+                        # Baseline without checkpointing: full state must be re-sent from the FAILED worker.
+                        # This is the pessimistic (but correct) model: failed worker's uplink U_k bottlenecks.
                         full_size = task.q_i
-                        peer_uplink = worker.upload_mbps
-                        recovery_bandwidth = min(peer_uplink, replacement_worker.download_mbps)
+                        failed_worker_uplink = worker.upload_mbps   # failed worker's upload (the bottleneck)
+                        recovery_bandwidth = min(failed_worker_uplink, replacement_worker.download_mbps)
                         t_xfer = (full_size * 8.0) / max(0.5, recovery_bandwidth)
                         recovery_latency = t_xfer + 0.25
                         compute_completed = 0.0

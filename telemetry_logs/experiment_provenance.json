@@ -4,7 +4,7 @@
   "total_runs": 280,
   "latest_run": {
     "run_id": "run_symmetric_c30_s999_Greedy-EFT",
-    "timestamp": "2026-11-02 15:27:39",
+    "timestamp": "2026-11-02 15:46:49",
     "seed": 999,
     "algorithm": "Greedy-EFT",
     "churn_rate": 0.3,

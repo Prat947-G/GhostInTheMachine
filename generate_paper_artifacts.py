@@ -223,17 +223,30 @@ def generate_figure2_recovery_time_vs_delta(events_csv: str, output_dir: str):
 
     fig, ax = plt.subplots(figsize=(8.0, 5.2))
 
+    def r_squared(x, y, poly):
+        y_pred = poly(x)
+        ss_res = sum((yi - yp) ** 2 for yi, yp in zip(y, y_pred))
+        mean_y = sum(y) / len(y)
+        ss_tot = sum((yi - mean_y) ** 2 for yi in y)
+        return 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
+
     if slow_deltas:
         ax.scatter(slow_deltas, slow_latencies, color="#D32F2F", alpha=0.6, label="Slower Uplink ($U_k \\approx 10$ Mbps)", s=45, marker="o")
-        poly_slow = np.poly1d(np.polyfit(slow_deltas, slow_latencies, 1))
+        coeffs_slow = np.polyfit(slow_deltas, slow_latencies, 1)
+        poly_slow = np.poly1d(coeffs_slow)
+        r2_slow = r_squared(slow_deltas, slow_latencies, poly_slow)
         x_vals = np.linspace(min(slow_deltas), max(slow_deltas), 100)
-        ax.plot(x_vals, poly_slow(x_vals), color="#B71C1C", linestyle="-", lw=2.2, label="Fit: Slow Uplink ($R^2$ Trend)")
+        ax.plot(x_vals, poly_slow(x_vals), color="#B71C1C", linestyle="-", lw=2.2,
+                label=f"Fit: Slow Uplink ($R^2={r2_slow:.2f}$)")
 
     if fast_deltas:
         ax.scatter(fast_deltas, fast_latencies, color="#1976D2", alpha=0.6, label="Fast Uplink ($U_k \\approx 100$ Mbps)", s=45, marker="s")
-        poly_fast = np.poly1d(np.polyfit(fast_deltas, fast_latencies, 1))
+        coeffs_fast = np.polyfit(fast_deltas, fast_latencies, 1)
+        poly_fast = np.poly1d(coeffs_fast)
+        r2_fast = r_squared(fast_deltas, fast_latencies, poly_fast)
         x_vals = np.linspace(min(fast_deltas), max(fast_deltas), 100)
-        ax.plot(x_vals, poly_fast(x_vals), color="#0D47A1", linestyle="--", lw=2.2, label="Fit: Fast Uplink ($R^2$ Trend)")
+        ax.plot(x_vals, poly_fast(x_vals), color="#0D47A1", linestyle="--", lw=2.2,
+                label=f"Fit: Fast Uplink ($R^2={r2_fast:.2f}$)")
 
     ax.set_xlabel("Incremental Checkpoint Size $\\Delta q_i$ (MB)")
     ax.set_ylabel("Failure-to-Resume Recovery Latency (seconds)")
@@ -339,6 +352,84 @@ def generate_figure3_goodput_breakdown(summary_csv: str, output_dir: str):
     print(f"Generated Figure 3: {pdf_path} and {png_path}")
 
 
+
+def generate_figure4_gor_vs_churn(summary_csv: str, output_dir: str):
+    """
+    Figure 4: Goodput-to-Overhead Ratio (GOR) vs Worker Churn Rate
+    Shows how GOR degrades under increasing churn for the proposed vs baseline schedulers.
+    Proposed (with checkpointing) maintains GOR via state-delta recovery; baselines collapse.
+    """
+    if not os.path.exists(summary_csv):
+        print(f"File not found: {summary_csv}")
+        return
+
+    data_by_alg_churn: Dict[Tuple[str, float], List[float]] = {}
+    with open(summary_csv, mode="r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            alg = row["algorithm"]
+            churn = float(row["churn_rate"])
+            gor = float(row["goodput_to_overhead_ratio"])
+            key = (alg, churn)
+            if key not in data_by_alg_churn:
+                data_by_alg_churn[key] = []
+            data_by_alg_churn[key].append(gor * 100.0)  # as percentage
+
+    algorithms = ["Proposed-RiskAware", "HEFT", "Bounded-ACO", "Greedy-EFT"]
+    churn_rates = sorted(set(churn for (_, churn) in data_by_alg_churn.keys()))
+
+    styles = {
+        "Proposed-RiskAware": {"color": "#1B5E20", "marker": "o", "label": "Proposed Risk-Aware (GhostInTheMachine)", "lw": 2.5, "ls": "-"},
+        "HEFT":               {"color": "#0D47A1", "marker": "s", "label": "HEFT Baseline", "lw": 2.0, "ls": "--"},
+        "Bounded-ACO":        {"color": "#E65100", "marker": "^", "label": "Bounded ACO", "lw": 2.0, "ls": "-."},
+        "Greedy-EFT":         {"color": "#C2185B", "marker": "x", "label": "Greedy Earliest-Finish", "lw": 1.8, "ls": ":"},
+    }
+
+    fig, ax = plt.subplots(figsize=(8.0, 5.2))
+
+    for alg in algorithms:
+        if alg not in styles:
+            continue
+        means = []
+        cis = []
+        valid_churns = []
+        for churn in churn_rates:
+            vals = data_by_alg_churn.get((alg, churn), [])
+            if vals:
+                mean = np.mean(vals)
+                ci = 1.96 * (np.std(vals, ddof=1) / math.sqrt(len(vals))) if len(vals) > 1 else 0.0
+                means.append(mean)
+                cis.append(ci)
+                valid_churns.append(churn * 100.0)
+
+        if valid_churns:
+            st = styles[alg]
+            ax.plot(valid_churns, means, marker=st["marker"], color=st["color"],
+                    label=st["label"], linewidth=st["lw"], markersize=7, linestyle=st["ls"])
+            lower = [max(0.0, m - c) for m, c in zip(means, cis)]
+            upper = [min(100.0, m + c) for m, c in zip(means, cis)]
+            ax.fill_between(valid_churns, lower, upper, color=st["color"], alpha=0.12)
+
+    ax.set_xlabel("Hourly Worker Churn Rate (%)")
+    ax.set_ylabel("Goodput-to-Overhead Ratio GOR (%)")
+    ax.set_title(
+        "Figure 4: Goodput-to-Overhead Ratio (GOR) vs. Worker Churn Rate\n"
+        "(with 95% Confidence Intervals — All Network Profiles Combined)",
+        fontweight="bold"
+    )
+    ax.set_ylim(50, 105)
+    ax.set_xlim(-1, 31)
+    ax.axhline(y=80.0, color="gray", linestyle=":", linewidth=1.0, alpha=0.7, label="GOR = 80% reference line")
+    ax.legend(loc="lower left", framealpha=0.9)
+
+    pdf_path = os.path.join(output_dir, "figure4_gor_vs_churn.pdf")
+    png_path = os.path.join(output_dir, "figure4_gor_vs_churn.png")
+    plt.savefig(pdf_path)
+    plt.savefig(png_path)
+    plt.close()
+    print(f"Generated Figure 4: {pdf_path} and {png_path}")
+
+
 def main(output_dirs: Optional[List[str]] = None):
     setup_matplotlib_style()
     dirs = output_dirs or ["artifacts", "figures"]
@@ -353,6 +444,7 @@ def main(output_dirs: Optional[List[str]] = None):
         generate_figure1_deadline_miss_rate(summary_csv, out_dir)
         generate_figure2_recovery_time_vs_delta(events_csv, out_dir)
         generate_figure3_goodput_breakdown(summary_csv, out_dir)
+        generate_figure4_gor_vs_churn(summary_csv, out_dir)
         print(f"All paper artifacts generated in '{out_dir}' successfully!")
 
 

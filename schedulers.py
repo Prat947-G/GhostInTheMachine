@@ -194,6 +194,10 @@ class BoundedACOScheduler(BaseScheduler):
         self.tau_max = tau_max
         self.seed = seed
 
+    def set_seed(self, seed: int) -> None:
+        """Update RNG seed per experiment run to ensure reproducibility."""
+        self.seed = seed
+
     def schedule(
         self,
         dag: WorkflowDAG,

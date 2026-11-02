@@ -6,6 +6,7 @@ output payload sizes, state sizes/deltas, and upward rank calculation.
 
 import json
 import random
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Dict, List, Set, Tuple, Optional
 
@@ -52,10 +53,10 @@ class WorkflowDAG:
 
     def topological_sort(self) -> List[str]:
         in_degree = {task_id: len(self.predecessors[task_id]) for task_id in self.tasks}
-        queue = [task_id for task_id, deg in in_degree.items() if deg == 0]
+        queue = deque(task_id for task_id, deg in in_degree.items() if deg == 0)
         result = []
         while queue:
-            node = queue.pop(0)
+            node = queue.popleft()   # O(1) with deque vs O(n) with list.pop(0)
             result.append(node)
             for succ in self.successors.get(node, []):
                 in_degree[succ] -= 1
@@ -69,18 +70,27 @@ class WorkflowDAG:
         """
         HEFT upward rank:
         rank_u(i) = avg_comp(i) + max_{j in succ(i)} (avg_comm(i,j) + rank_u(j))
+
+        Per HEFT (Topcuoglu et al. 2002): avg_comp uses mean across all workers;
+        avg_comm uses mean effective bandwidth over all inter-worker pairs (bottleneck).
+        This correctly reflects the expected cost across a heterogeneous pool.
         """
         ranks: Dict[str, float] = {}
         order = self.topological_sort()
         order_reversed = list(reversed(order))
 
-        # Average speeds and bandwidths across workers
-        avg_speed = sum(w.speed for w in workers) / len(workers)
-        # Average effective communication bandwidth across worker pairs
-        avg_bandwidth = sum(
-            min(w1.upload_mbps, w2.download_mbps)
-            for w1 in workers for w2 in workers if w1.id != w2.id
-        ) / max(1, len(workers) * (len(workers) - 1))
+        # Average compute speed and bottleneck bandwidth across the worker pool
+        avg_speed = sum(w.speed for w in workers) / max(1, len(workers))
+        # Average effective bottleneck bandwidth (min of sender upload, receiver download)
+        num_pairs = len(workers) * (len(workers) - 1)
+        if num_pairs > 0:
+            avg_bandwidth = sum(
+                min(w1.upload_mbps, w2.download_mbps)
+                for w1 in workers for w2 in workers if w1.id != w2.id
+            ) / num_pairs
+        else:
+            avg_bandwidth = 10.0   # fallback for single-worker pools
+        avg_bandwidth = max(0.1, avg_bandwidth)  # guard against division by zero
 
         for task_id in order_reversed:
             task = self.tasks[task_id]
