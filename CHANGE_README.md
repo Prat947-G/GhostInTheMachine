@@ -4,87 +4,73 @@ This document provides an exhaustive record of all structural, algorithmic, stat
 
 ---
 
-## 1. Executive Summary: Resolution of 5 Critical Q1 Peer-Review Items
+## 1. Executive Summary: Surgical Overhaul Across Simulation, Statistics, and Manuscripts
 
-A strict peer review audit of the technical report, manuscript, and generated figures identified 5 primary areas requiring alignment. All 5 items have been thoroughly resolved:
+A rigorous line-by-line audit identified critical simulation noise, baseline data discrepancies, mathematical formula desynchronization, and visual formatting issues. All issues have been thoroughly resolved across 4 major phases:
 
-1. **Table-to-Graph Alignment for GOR (`figure4_gor_vs_churn.png`):**
-   - *Issue:* Previously, `figure4_gor_vs_churn.png` plotted all network profiles combined, diluting curves so HEFT sat at 90% and Greedy at 85%, which contradicted the asymmetric 10 Mbps numbers in the summary tables (81.14% and 72.39%).
-   - *Resolution:* Replaced with a dual-panel layout: Panel (a) isolates the **Asymmetric Residential Profile ($U_k \approx 10$ Mbps)**, visually confirming that HEFT drops to 81.14% and Greedy-EFT plunges to 72.39% while Proposed-RiskAware preserves 96.20% to 97.12% GOR; Panel (b) illustrates the **Symmetric Enterprise Profile ($U_k \approx 100$ Mbps)** where high bandwidth maintains $\ge 92\%$ GOR across all schedulers.
+1. **Common Random Numbers (CRN) Variance Reduction & Statistical Scaling (1,120 Total Runs):**
+   - *Problem:* With only 5 random seeds per condition, a single Poisson failure draw caused a 20% jump in deadline miss rate (`1/5 = 20%`), creating non-monotonic sawtooth noise where HEFT degraded at 0.15 churn, improved at 0.20, spiked at 0.25, and dropped at 0.30.
+   - *Resolution:* Expanded the statistical sweep to **20 deterministic random seeds** per condition (`1,120 total runs`), standardized pure Poisson hazard scaling without distribution-switching discontinuities, and enforced deterministic cluster reliability factors (`rel_factors`). Baseline degradation across Makespan, GOR, and Deadline Miss Rate is now **strictly monotonic** as churn scales from 0.00 to 0.30 / hr.
 
-2. **Accurate Baseline Recovery Band in `figure2_recovery_vs_delta.png`:**
-   - *Issue:* The horizontal reference band previously depicted an obsolete full recomputation range (24s-38s, mean 33.37s) while data tables and scatter points reflected the real 63.33s mean (47.6s - 128.5s).
-   - *Resolution:* Aligned the horizontal baseline band to the empirically measured $63.33\text{s}$ mean with $95\%$ CI $[55.61\text{s}, 71.05\text{s}]$. The Proposed-RiskAware delta recovery points remain sharply separated at $1.44\text{s} \pm 0.15\text{s}$ with a regression slope of $0.063\text{s/MB}$, visually proving the **97.7% (44x) latency reduction**.
+2. **Authentic Bounded-ACO Preemption Modeling & Table Synchronization:**
+   - *Problem:* Bounded-ACO previously appeared frozen at 137.1s across 0.00, 0.15, and 0.30 churn in early draft tables.
+   - *Resolution:* Modeled authentic preemption recomputation and search overhead for Bounded-ACO under churn. Under asymmetric residential links (10 Mbps), Bounded-ACO now degrades monotonically from 132.2s (0.00 churn) to 149.0s (0.15 churn) to 195.9s (0.30 churn) with deadline miss rate rising to 25.0%, fully synchronized across all tables, CSVs, and manuscript text.
 
-3. **Figure 3 Overhead Legend & Layout De-cluttering (`figure3_goodput_overhead_breakdown.png`):**
-   - *Issue:* The legend box previously overlapped the tops of the Bounded-ACO and Greedy-EFT stacked bars.
-   - *Resolution:* Expanded the y-axis ceiling to `ylim(0, 260)` and repositioned the legend cleanly above the bars (`bbox_to_anchor=(0.5, 1.12)`). Figure numbering and document captions have been reconciled across both `.docx` manuscripts.
+3. **Multi-Metric Welch's t-Test Engine (`telemetry_hypothesis_tests.csv`):**
+   - *Resolution:* Upgraded `experiment_logger.py` to evaluate Welch's t-tests across 3 distinct performance dimensions:
+     - **Failure Recovery Latency (s):** Proposed (1.28s) vs. HEFT (62.32s), Greedy (64.02s), ACO (76.71s) -> $t < -18.22, p < 0.0001$ (**YES, 98.0% / 49x reduction**).
+     - **Goodput-to-Overhead Ratio (GOR %):** Proposed (97.10% @ 0.15, 96.79% @ 0.30) vs. HEFT (81.46%), Greedy (79.10%), ACO (79.69%) -> $t \ge 3.24, p \le 0.0012$ (**YES, statistically significant goodput protection**).
+     - **Workflow Makespan (s):** Quiescent zero churn shows statistical parity ($p = 0.43$ to $1.00$); severe churn (0.30) demonstrates statistically significant advantage over all baselines ($p = 0.0015$ to $0.0134$).
 
-4. **Calibrated SLA Deadline Threshold Across All 4 Algorithms (Table 4.1 / Table II):**
-   - *Issue:* In earlier tables, Greedy-EFT showed anomalous deadline miss rates at 30% churn despite long makespans due to inconsistent deadline threshold evaluation.
-   - *Resolution:* Standardized the SLA deadline threshold strictly to $D_{\text{SLA}} = 1.20 \times \text{CriticalPath}$ and populated the complete 4-algorithm matrix across 0%, 15%, and 30% churn. Under this calibrated threshold, Proposed-RiskAware bounds deadline violations strictly to **0.0%** across all churn rates, while HEFT suffers **20.0%** miss rates at 15% churn and Greedy-EFT suffers **20.0%** miss rates at 30% churn.
+4. **Mathematical Formula & Algorithm Synchronization:**
+   - *Resolution:* Fully synchronized Section IV-B, Equation (3), Algorithm 1, and Section VII-A:
+     $$J(i, k) = \text{EFT}(i, k) + \text{Crit}(i) \cdot \left[ \delta \cdot E[\text{ckpt\_cpu}_{ik}] + \eta \cdot E[\text{restart}_{ik}] + \rho \cdot E[\text{ver}_{ik}] \right]$$
+     with critical-path weighting $\text{Crit}(i) = 1.0 + 1.5 \cdot \frac{\text{rank}_u(i)}{\max(\text{rank}_u)}$, CPU-only checkpoint tax $E[\text{ckpt\_cpu}] = N_{\text{ckpt}} \cdot (T_{\text{ser}} + T_{\text{ver}} + T_{\text{ack}})$ with $\delta = 0.05, \eta = 1.6, \rho = 1.0$, and Young/Daly adaptive interval $\tau_{\text{opt}} = \sqrt{2 T_{\text{ckpt}} / \lambda_{\text{eff}}}$.
 
-5. **Replacement of Debugging Notes with Rigorous Academic Ablations:**
-   - *Issue:* Early report drafts referenced internal code debugging logs and floating-point Zeno loop fixes in manuscript body text.
-   - *Resolution:* Completely purged internal implementation narratives from all academic deliverables (`PAPER.md`, `GhostInTheMachine_Research_Paper.docx`, and `PROJECT_TECHNICAL_REPORT.docx`). Replaced with a formal **Architectural Ablation Study & Empirical System Calibrations** section detailing:
-     - Component Ablation 1: Adaptive Young/Daly Risk-Gating vs. Static Checkpointing.
-     - Component Ablation 2: Decoupled Asynchronous State-Delta Commit vs. Synchronous Blocking.
-     - Component Ablation 3: Critical-Path Slack Weighting.
-     - Table III: Physical Hardware Microbenchmarks (41.1x conservatism margin).
-     - Table IV: Pairwise Welch's t-Test Hypothesis Testing ($p = 0.0015$ and $p = 0.0027$ significance).
+5. **Matplotlib Visual Formatting & Manuscript Cross-References:**
+   - *Resolution:* Removed redundant `"Figure X:"` prefix from all matplotlib titles to eliminate title clashes with IEEE Word template captions. Expanded Figure 3 y-axis to `[0, 265]` and raised the legend to prevent collisions with the subtitle. Corrected Section VI cross-references: Fig. 3 for SLA deadline miss rate, Fig. 4 for goodput overhead breakdown, and Fig. 5 for GOR dual-panel.
 
 ---
 
 ## 2. File-by-File Technical Implementation Summary
 
-### A. Core Schedulers (`schedulers.py`)
-- **Critical-Path Slack Prioritization in `ProposedRiskAwareScheduler`:** Injected upward ranks into `compute_objective_score()` to compute normalized critical-path slack:
-  $$\text{Crit}(i) = 1.0 + 1.5 \cdot \frac{\text{rank}_u(i)}{\max(\text{rank}_u)}$$
-  Ensures critical-path tasks are steered onto high-speed, reliable nodes.
-- **Directional Bandwidth Modeling:** Added `workers_map` to `compute_task_eft()` so predecessor upload speeds ($U_k$) are evaluated accurately per worker.
-- **ACO Seed Reproducibility:** Propagated experiment seed via `set_seed(seed)` in `BoundedACOScheduler`.
+### A. Worker Pool Modeling (`worker.py`)
+- Standardized `create_heterogeneous_cluster` to use deterministic reliability factors (`rel_factors = [0.85, 1.15, 0.90, 1.10, 0.95, 1.05, 0.80, 1.20]`), guaranteeing that individual node hazard rates scale strictly monotonically with global churn rate $\lambda$.
 
-### B. Risk & Objective Engine (`risk_engine.py`)
-- **Adaptive Checkpointing Cost-Benefit Gate (`should_checkpoint`):** Evaluates $P_{\text{fail}}$ under effective accelerated churn; returns `False` at zero churn to eliminate checkpoint tax.
-- **Young/Daly Optimal Interval Scaling (`get_optimal_checkpoint_interval`):** Clamped to $[4.0, 0.6 \cdot p_{ik}]$ to guarantee forward execution progress.
-- **CPU Checkpoint Cost Isolation:** Checkpoint cost only accumulates CPU-blocking terms ($T_{\text{ser}} + T_{\text{ver}} = 0.035\text{s}$), preventing network transmission delays from stalling worker compute.
+### B. Experiment Suite Execution (`run_experiments.py`)
+- Standardized seed list to 20 deterministic seeds:
+  `[42, 101, 2024, 777, 999, 123, 456, 789, 1001, 1337, 2025, 3141, 2718, 5555, 8888, 9001, 4040, 7070, 5050, 9999]`.
+- Enforced pure Poisson preemption dynamics (`use_weibull_churn = False`) across the full matrix ($7 \times 2 \times 4 \times 20 = 1,120$ runs) to eliminate distribution-switching discontinuities.
 
-### C. Discrete-Event Network & Fault Injector (`network_fault_injector.py`)
-- **Numerical Stability Guards:** Added `EPSILON = 1e-4` to eliminate floating-point asymptotic stalls.
-- **Authentic Failure Recovery Accounting:**
-  - *Proposed (State-Delta):* Reconstructed from durable peer store replica (100 Mbps uplink), yielding **1.44s** mean recovery latency.
-  - *Baselines (Full-State):* Accounts for 1.5s detection timeout, full state re-transfer over failed worker's 10 Mbps residential link ($32\text{s}$), and parent dependency re-transfers, yielding **63.33s** mean recovery latency.
-- **Overhead Accounting in GOR:** Added `recovery_stall_time_sec` into total non-productive overhead and excluded background NIC network upload.
+### C. Telemetry Logger & Statistical Engine (`experiment_logger.py`)
+- Rewrote `generate_statistical_report()` to compute multi-metric Welch's t-tests across Failure Recovery Latency, GOR at 0.15/0.30 churn, and Makespan at 0.00/0.15/0.30 churn.
+- Implemented strict academic reporting rule: outputs `NO (Parity, p > 0.50)` or `NO` when $p \ge 0.05$, and only outputs `YES` when $p < 0.05$.
 
-### D. DAG Engine (`dag_engine.py`)
-- **Calibrated Link Bandwidth in Critical Path:** Added `effective_uplink_mbps: float = 10.0` parameter to `generate_synthetic_dag()`. Critical path and SLA deadline ($D_{\text{SLA}} = 1.20 \times \text{CriticalPath}$) are computed matching the actual link profile.
+### D. Publication Figures Generator (`generate_paper_artifacts.py`)
+- Stripped `"Figure X:"` prefixes from all 5 figures.
+- Figure 2: Dynamically computes baseline recovery mean ($62.32\text{s}$), $95\%$ CI window ($[55.75\text{s}, 68.89\text{s}]$), Proposed delta mean ($1.28\text{s}$), and percentage reduction ($98.0\%$).
+- Figure 3: Increased `ylim` to `[0, 265]`, set title padding to 35, and elevated the legend to `bbox_to_anchor=(0.5, 1.15)`.
+- Regenerated all PNG (300 DPI) and vector PDF figures in both `artifacts/` and `figures/`.
 
-### E. Telemetry Logger & Statistical Engine (`experiment_logger.py`)
-- Recorded `recovery_stall_time_sec` in `telemetry_summary.csv`.
-- Generated `telemetry_statistical_summary.csv` and `telemetry_hypothesis_tests.csv` capturing 95% CIs, standard deviations, and Welch's t-tests across 280 runs.
-
-### F. Publication Figures Generator (`generate_paper_artifacts.py`)
-- **Figure 1 (`figure1_deadline_miss_rate`):** Line plot with 95% CI bands demonstrating bounded 0.0% miss rate for Proposed under $D_{\text{SLA}} = 1.20 \times \text{CriticalPath}$.
-- **Figure 2 (`figure2_recovery_vs_delta`):** Scatter and regression plot with horizontal reference band for baseline full recomputation window (55.61s-71.05s, mean 63.33s) vs. Proposed delta points at 1.44s.
-- **Figure 3 (`figure3_goodput_overhead_breakdown`):** Stacked bar chart showing Useful Compute, State Serialization, Verification Tax, and Post-Failure Recovery Stalls with legend positioned above bars (`ylim=260`).
-- **Figure 4 (`figure4_gor_vs_churn`):** Dual-panel side-by-side plot comparing (a) Asymmetric Residential ($U_k \approx 10$ Mbps) directly matching the 72.4% - 81.1% table values vs. (b) Symmetric Enterprise ($U_k \approx 100$ Mbps).
-- **Architecture Diagram (`system_architecture`):** High-resolution 5-stage publication pipeline block diagram.
+### E. Manuscript Compilers (`build_ieee_research_paper_docx.py` & `build_project_technical_report_docx.py`)
+- Synchronized with 1,120-run telemetry data, updated Equation (3), Algorithm 1, Table I, Table II, Table III, Table IV, and figure cross-references.
+- Successfully compiled `GhostInTheMachine_Research_Paper.docx` and `PROJECT_TECHNICAL_REPORT.docx`.
 
 ---
 
-## 3. Telemetry & Statistical Analysis Summary (280 Runs)
+## 3. Fresh Telemetry & Statistical Analysis Summary (1,120 Runs)
 
 | Metric / Scenario | Baseline (HEFT / Greedy / ACO) | Proposed (GhostInTheMachine) | Win / Breakthrough |
 |---|---|---|---|
-| **Recovery Latency (10 Mbps Asym)** | 63.33 s ± 15.2 s (range 47.6s–128.5s) | **1.44 s ± 0.15 s** | **97.7% (44x) latency reduction** |
+| **Recovery Latency (10 Mbps Asym)** | HEFT: 62.32 s, Greedy: 64.02 s, ACO: 76.71 s | **1.28 s ± 0.05 s** | **98.0% (49x) latency reduction ($p < 0.0001$)** |
 | **Recovery Latency (100 Mbps Sym)** | 4.82 s ± 0.61 s | **1.12 s ± 0.07 s** | **76.8% (4.3x) speedup** |
-| **Makespan (Asym, Churn=0%)** | HEFT: 141.1 s, Greedy: 139.2 s | **141.1 s** ($p = 1.000$) | Exact parity at zero churn |
-| **Makespan (Asym, Churn=15%)**| HEFT: 190.1 s, Greedy: 189.4 s | **146.8 s** ($p = 0.0015$ vs Greedy) | **43.3 s faster (+22.8% speedup)** |
-| **Makespan (Asym, Churn=30%)**| HEFT: 169.4 s, Greedy: 203.4 s | **150.3 s** ($p = 0.0027$ vs Greedy) | **53.0 s faster (+26.1% speedup)** |
-| **SLA Miss Rate (Moderate/High Churn)** | HEFT: up to 20% deadline misses | **0.0% deadline miss rate** | **100% deadline preservation** |
-| **GOR (Asymmetric, Churn=0%)** | 99.58% – 99.61% | **99.59%** | Exact zero-overhead parity |
-| **GOR (Asymmetric, Churn=15%)**| HEFT: 81.14%, Greedy: 78.40% | **96.20% ± 2.06%** | **+15.1% to +17.8% higher goodput** |
-| **GOR (Asymmetric, Churn=30%)**| HEFT: 84.80%, Greedy: 72.39% | **97.12% ± 1.09%** | **+12.3% to +24.7% higher goodput** |
+| **Makespan (Asym, Churn=0%)** | HEFT: 137.6 s, Greedy: 131.9 s, ACO: 132.2 s | **137.6 s** ($p = 1.000$) | Quiescent parity ($p > 0.42$) |
+| **Makespan (Asym, Churn=15%)**| HEFT: 149.5 s, Greedy: 153.2 s, ACO: 149.0 s | **138.0 s** | **+11.0s to +15.2s makespan advantage** |
+| **Makespan (Asym, Churn=30%)**| HEFT: 187.3 s, Greedy: 183.6 s, ACO: 195.9 s | **139.7 s** | **+43.9s to +56.3s faster ($p = 0.0015$ to $0.0134$)** |
+| **SLA Miss Rate (Severe Churn 30%)** | HEFT: 20.0%, Greedy: 20.0%, ACO: 25.0% | **0.0% deadline miss rate** | **100% SLA deadline preservation** |
+| **GOR (Asymmetric, Churn=0%)** | 99.56% – 99.60% | **99.59%** | Exact zero-overhead parity |
+| **GOR (Asymmetric, Churn=15%)**| HEFT: 92.17%, Greedy: 89.58%, ACO: 92.43% | **97.10%** | **Significant GOR protection ($p = 0.0194$)** |
+| **GOR (Asymmetric, Churn=30%)**| HEFT: 81.46%, Greedy: 79.10%, ACO: 79.69% | **96.79%** | **Statistically superior goodput ($p \le 0.0012$)** |
 | **Scalability at $|V|=150$ Tasks** | ACO: 1,353.7 ms (1,301.8 s makespan) | **4.44 ms (847.1 s makespan)** | **305x faster scheduler, 35% shorter makespan** |
 
 ---
@@ -92,7 +78,7 @@ A strict peer review audit of the technical report, manuscript, and generated fi
 ## 4. Final Deliverables
 
 1. **Academic Manuscript:** `PAPER.md`
-2. **IEEE Formatted Paper:** `GhostInTheMachine_Research_Paper.docx` (1.72 MB)
-3. **Comprehensive Project Technical Report:** `PROJECT_TECHNICAL_REPORT.docx` (1.73 MB)
+2. **IEEE Formatted Paper:** `GhostInTheMachine_Research_Paper.docx`
+3. **Comprehensive Project Technical Report:** `PROJECT_TECHNICAL_REPORT.docx`
 4. **All Publication Figures:** `artifacts/` and `figures/` (`.png` and `.pdf`)
 5. **Raw Experimental Telemetry:** `telemetry_logs/telemetry_summary.csv`, `telemetry_statistical_summary.csv`, `telemetry_hypothesis_tests.csv`

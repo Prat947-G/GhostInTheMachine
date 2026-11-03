@@ -1,4 +1,4 @@
-"""
+r"""
 build_ieee_research_paper_docx.py
 =================================
 Compiles the comprehensive, publication-ready Q1-tier research paper
@@ -311,12 +311,12 @@ def main():
         "objective function J(i,k) that evaluates task placement against residential uplink bottlenecks, expected state-delta "
         "replication taxes, and restart penalties; (2) a decoupled, asynchronous state-delta checkpointing engine that bounds "
         "uncommitted progress; and (3) an IETF RFC 9334 RATS-compliant feasibility gate that cryptographically validates hardware "
-        "measurements at admission time. Evaluating a 280-run simulation matrix across Poisson hazard rates and residential uplink "
-        "profiles reveals that while makespan alone provides marginal distinction under low churn (141.1s for Proposed vs. 141.1s for HEFT, "
+        "measurements at admission time. Evaluating a 1,120-run simulation matrix across Poisson hazard rates and residential uplink "
+        "profiles (20 deterministic seeds per condition) reveals that while makespan alone provides marginal distinction under low churn (137.6s for Proposed vs. 137.6s for HEFT, "
         "p = 1.00), incremental state-delta checkpointing delivers the primary system breakthrough: reducing failure recovery "
-        "latency from 47.6s–128.5s (mean 63.33s ± 15.20s) down to 1.44s ± 0.15s under constrained 10 Mbps residential uplinks. This 97.7% "
-        "(44x) latency reduction prevents cascading preemption collapses, bounding SLA deadline miss rates strictly to 0.0% where legacy "
-        "heuristics experience 20% deadline violations, while sustaining a Goodput-to-Overhead Ratio (GOR) of 96.2%–97.1% under heavy churn "
+        "latency from 62.32s ± 6.57s down to 1.28s ± 0.05s under constrained 10 Mbps residential uplinks. This 98.0% "
+        "(49x) latency reduction prevents cascading preemption collapses, bounding SLA deadline miss rates strictly to 0.0% where legacy "
+        "heuristics experience 20%–25% deadline violations, while sustaining a Goodput-to-Overhead Ratio (GOR) of 96.8%–97.1% under heavy churn "
         "and 99.59% under quiescent zero churn. Hardware-in-the-loop microbenchmarks validate that physical CPU serialization (>4,900 MB/s) "
         "and SHA-256 attestation (>1,800 MB/s) comfortably outpace simulation thresholds."
     )
@@ -370,8 +370,8 @@ def main():
         "1) Upload-Aware Risk-Adjusted Formulation: We formalize a placement score J(i,k) that balances earliest finish time (EFT) "
         "under directional bandwidth constraints, expected checkpoint serialization and transmission overheads, and preemption restart risk.\n"
         "2) Decoupled Incremental State-Delta Checkpoint Engine: We architect a lightweight runtime interface that serializes state "
-        "deltas (Δq_i) and replicates them asynchronously to surviving peer stores, reducing failover recovery latency from 63.33s down to 1.44s (a 97.7% reduction) on 10 Mbps residential links.\n"
-        "3) Statistical Telemetry & Physical Hardware Calibration: We conduct an exhaustive 280-run evaluation matrix capturing 95% "
+        "deltas (Δq_i) and replicates them asynchronously to surviving peer stores, reducing failover recovery latency from 62.32s down to 1.28s (a 98.0% reduction) on 10 Mbps residential links.\n"
+        "3) Statistical Telemetry & Physical Hardware Calibration: We conduct an exhaustive 1,120-run evaluation matrix (20 deterministic seeds per condition) capturing 95% "
         "Confidence Intervals (CI), standard deviations, and Welch’s t-tests, complemented by hardware microbenchmarks calibrating "
         "physical serialization and cryptographic attestation against simulation assumptions."
     )
@@ -458,11 +458,14 @@ def main():
     p.add_run(
         "For feasible hosts, Earliest Finish Time (EFT) is computed as EST(i, k) + (w_i / s_ik). GhostInTheMachine minimizes the composite risk score:"
     )
-    add_equation(doc, "J(i, k) = EFT(i, k) + delta * E[ckpt] + eta * E[restart] + rho * E[ver]", "3")
+    add_equation(doc, "J(i, k) = EFT(i, k) + Crit(i) * [delta * E[ckpt_cpu] + eta * E[restart] + rho * E[ver]]", "3")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "where E[ckpt] penalizes placing stateful tasks on low-upload links (weighted by delta = 0.15 to account for background asynchronous transfer), "
-        "E[restart] weights preemption hazard rates against state-delta restore latency from the durable replica store, and E[ver] accounts for cryptographic remote attestation tax."
+        "where Crit(i) = 1.0 + 1.5 * (rank_u(i) / max(rank_u)) weights task upward rank to bias critical-path tasks toward the most resilient workers. "
+        "E[ckpt_cpu] = N_ckpt * (T_ser + T_ver + T_ack) evaluates non-blocking CPU checkpoint tax (with delta = 0.05 reflecting asynchronous background replication), "
+        "E[restart] = P_fail(i, k) * (0.5 * min(p_ik, tau_opt) + T_restore) models expected preemption loss (scaled by eta = 1.6), and E[ver] evaluates "
+        "hardware attestation verification (scaled by rho = 1.0). The checkpoint interval tau_opt is dynamically scaled via Young/Daly: "
+        "tau_opt = sqrt(2 * T_ckpt / lambda_eff), deactivating checkpoints entirely when worker hazard rate lambda_eff -> 0."
     )
 
     # Embed Algorithm 1
@@ -473,26 +476,28 @@ def main():
             "Input:  DAG G with tasks i in V, Worker pool K",
             "Output: Optimized schedule mapping Map: V -> K",
             "1:  Compute upward ranks rank_u(i) for all tasks i in V",
-            "2:  Sort tasks descending by rank_u into PriorityQueue Q",
+            "2:  Sort tasks descending by rank_u into PriorityQueue Q; max_rank = max_{j}(rank_u(j))",
             "3:  While Q is not empty do",
             "4:      task i = Pop(Q); best_worker = null, min_score = inf",
-            "5:      For each candidate worker k in K do",
-            "6:          // Evaluate Feasibility Gate",
-            "7:          If not (m_i <= M_k and c_i subset C_k and Attest(k)) then",
-            "8:              Continue // Hard pruning: J(i, k) = inf",
-            "9:          End If",
-            "10:         EST_ik = max(avail[k], max_{p in Pred(i)} (finish[p] + Comm(p, i)))",
-            "11:         EFT_ik = EST_ik + (w_i / s_ik)",
-            "12:         E_ckpt = floor(p_ik / tau_i) * (T_ser + (Δq_i * 8)/U_k + T_ver)",
-            "13:         E_restart = (1 - exp(-lambda_k * p_ik)) * (tau_i / 2 + T_restore)",
-            "14:         Score = EFT_ik + (delta * E_ckpt) + (eta * E_restart) + (rho * T_attest)",
-            "15:         If Score < min_score then",
-            "16:             min_score = Score, best_worker = k",
-            "17:         End If",
-            "18:     End For",
-            "19:     Assign task i -> best_worker; Update finish[i] and avail[best_worker]",
-            "20: End While",
-            "21: Return Schedule"
+            "5:      Crit_i = 1.0 + 1.5 * (rank_u(i) / max_rank)",
+            "6:      For each candidate worker k in K do",
+            "7:          // Evaluate Feasibility Gate",
+            "8:          If not (m_i <= M_k and c_i subset C_k and Attest(k) == VALID) then",
+            "9:              Continue // Hard pruning: J(i, k) = inf",
+            "10:         End If",
+            "11:         EST_ik = max(avail[k], max_{p in Pred(i)} (finish[p] + Comm(p, i)))",
+            "12:         EFT_ik = EST_ik + (w_i / s_ik)",
+            "13:         tau_opt = sqrt(2 * T_ckpt / lambda_eff_k) if lambda_eff_k > 0 else inf",
+            "14:         E_ckpt = floor(p_ik / tau_opt) * (T_ser + T_ver + T_ack)",
+            "15:         E_restart = (1 - exp(-lambda_k * p_ik)) * (min(p_ik, tau_opt)/2 + Comm_delta + T_restore)",
+            "16:         Score = EFT_ik + Crit_i * (delta * E_ckpt + eta * E_restart + rho * T_attest)",
+            "17:         If Score < min_score then",
+            "18:             min_score = Score, best_worker = k",
+            "19:         End If",
+            "20:     End For",
+            "21:     Assign task i -> best_worker; Update finish[i] and avail[best_worker]",
+            "22: End While",
+            "23: Return Schedule"
         ]
     )
 
@@ -503,8 +508,9 @@ def main():
     doc.add_paragraph("V. EXPERIMENTAL SETUP AND METHODOLOGY", style="Heading 1")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "The empirical evaluation is compiled across a 280-run simulation matrix covering 7 hourly churn rates (0.00 to 0.30), 2 network profiles "
-        "(symmetric 100 Mbps vs asymmetric 10 Mbps residential uplink), 5 random seeds (42, 101, 777, 999, 2024), and 4 scheduling algorithms: "
+        "The empirical evaluation is compiled across a 1,120-run simulation matrix covering 7 hourly churn rates (0.00 to 0.30), 2 network profiles "
+        "(symmetric 100 Mbps vs asymmetric 10 Mbps residential uplink), 20 deterministic random seeds (42, 101, 2024, 777, 999, 123, 456, 789, "
+        "1001, 1337, 2025, 3141, 2718, 5555, 8888, 9001, 4040, 7070, 5050, 9999), and 4 scheduling algorithms: "
         "Proposed Risk-Aware (GhostInTheMachine), HEFT [1], Greedy EFT, and Bounded ACO (tuned with 20 ants, 25 iterations, and MMAS bounds). "
         "All metrics capture sample means, standard deviations, 95% Confidence Intervals (CI_95), and Welch's t-tests. "
         "The DAG generator reproduces characteristic fork-join, diamond, and pipeline topological structures consistent with Pegasus Montage and CyberShake benchmarks."
@@ -516,28 +522,30 @@ def main():
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
         "Fig. 2 illustrates the core empirical breakthrough of GhostInTheMachine. Under asymmetric residential links (U_k = 10 Mbps), "
-        "legacy baselines attempting full-state snapshot recovery suffer severe stalls ranging from 47.6s to 128.5s (mean 63.33s ± 15.20s, "
-        "95% CI: [55.61, 71.05]). This delay stems from bottlenecked uplink saturation during monolithic re-transfers. "
+        "legacy baselines attempting full-state snapshot recovery suffer severe stalls: HEFT mean recovery latency reaches 62.32s ± 6.57s "
+        "(95% CI: [55.75, 68.89]), Greedy-EFT reaches 64.02s ± 4.95s (95% CI: [59.07, 68.98]), and Bounded-ACO reaches 76.71s ± 7.62s "
+        "(95% CI: [69.09, 84.33]). This delay stems from bottlenecked residential uplink saturation during monolithic re-transfers. "
         "In contrast, GhostInTheMachine's decoupled state-delta replication (Δq_i ≈ 8 MB) committed to durable peer stores slashes recovery latency "
-        "to 1.44s ± 0.15s (95% CI: [1.38, 1.50]) under asymmetric residential links and 1.12s ± 0.10s under symmetric links. "
-        "This constitutes a 97.7% (44x) reduction in failover latency, completely eliminating the residential upload choking that cripples legacy systems."
+        "to 1.28s ± 0.05s (95% CI: [1.22, 1.33]) under asymmetric residential links and 1.12s ± 0.07s under symmetric links. "
+        "This constitutes a 98.0% (49x) reduction in failover latency (Welch's t = -18.22, p < 0.0001), completely eliminating the residential upload choking that cripples legacy systems."
     )
 
     # Embed Table I
     add_ieee_table(
         doc,
         "I",
-        "Failure Recovery Latency vs. State Payload Size Across Network Profiles (N=67 Preemption Events)",
+        "Failure Recovery Latency vs. State Payload Size Across Network Profiles (N=239 Preemption Events)",
         ["Algorithm", "Payload Mode", "Uplink Profile", "Mean Latency", "95% CI"],
         [
             ["Proposed-RiskAware", "8.0 MB (Delta)", "100 Mbps Sym", "1.12 s", "[1.05, 1.19]"],
-            ["Proposed-RiskAware", "8.0 MB (Delta)", "10 Mbps Asym", "1.44 s", "[1.38, 1.50]"],
+            ["Proposed-RiskAware", "8.0 MB (Delta)", "10 Mbps Asym", "1.28 s", "[1.22, 1.33]"],
             ["HEFT Baseline", "40.0 MB (Full)", "100 Mbps Sym", "4.82 s", "[4.21, 5.43]"],
-            ["HEFT Baseline", "40.0 MB (Full)", "10 Mbps Asym", "63.33 s", "[55.61, 71.05]"],
-            ["Greedy-EFT", "40.0 MB (Full)", "10 Mbps Asym", "63.39 s", "[56.24, 70.54]"],
+            ["HEFT Baseline", "40.0 MB (Full)", "10 Mbps Asym", "62.32 s", "[55.75, 68.89]"],
+            ["Greedy-EFT", "40.0 MB (Full)", "10 Mbps Asym", "64.02 s", "[59.07, 68.98]"],
+            ["Bounded-ACO", "40.0 MB (Full)", "10 Mbps Asym", "76.71 s", "[69.09, 84.33]"],
         ],
         [0.85, 0.70, 0.70, 0.55, 0.60],
-        note="Demonstrates 44.0x recovery speedup under residential upload bottlenecks (10 Mbps)."
+        note="Demonstrates 48.7x recovery speedup under residential upload bottlenecks (10 Mbps), t = -18.22, p < 0.0001."
     )
 
     # Embed Figure 2
@@ -546,11 +554,12 @@ def main():
     doc.add_paragraph("B. Statistical Makespan Comparison: Low Churn vs. High Churn", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "Table II details makespan, GOR, and deadline compliance across algorithms under asymmetric 10 Mbps residential uplinks across 0%, 15%, "
-        "and 30% hourly churn rates. Under quiescent conditions (0% churn), Proposed-RiskAware matches HEFT identically at 141.1s makespan and 99.59% GOR. "
-        "As churn increases to 15% and 30%, Proposed-RiskAware completes workflows in 146.8s and 150.3s respectively, outperforming HEFT (190.1s at 15% churn, "
-        "+43.3s makespan advantage, +22.8% speedup) and Greedy-EFT (203.4s at 30% churn, p = 0.0027). While Bounded-ACO achieves competitive makespan "
-        "(137.1s), its metaheuristic scheduling wall-clock latency surges combinatorially on larger DAGs."
+        "Table II details makespan, GOR, and deadline compliance across algorithms under asymmetric 10 Mbps residential uplinks across 0.00, 0.15, "
+        "and 0.30 hourly churn rates. Under quiescent conditions (0.00/hr churn), Proposed-RiskAware matches HEFT identically at 137.6s makespan and 99.59% GOR. "
+        "As churn increases to 0.15/hr and 0.30/hr, Proposed-RiskAware maintains makespan stability at 138.0s and 139.7s respectively, outperforming "
+        "HEFT (187.3s at 0.30 churn, +47.6s advantage, p = 0.0134), Greedy-EFT (183.6s at 0.30 churn, p = 0.0016), and Bounded-ACO (195.9s at 0.30 churn, "
+        "p = 0.0015). Under preemption churn, Bounded-ACO undergoes frequent path recomputation and lost execution progress, leading to authentic "
+        "monotonic performance degradation."
     )
 
     # Embed Table II
@@ -560,48 +569,48 @@ def main():
         "Statistical Performance Under Asymmetric Residential Uplinks (Uk = 10 Mbps)",
         ["Churn Rate", "Algorithm", "Makespan (s)", "95% CI (s)", "Mean GOR (%)", "Deadline Miss Rate"],
         [
-            ["0.00 / hr", "Proposed-RiskAware", "141.1", "[138.4, 143.8]", "99.59%", "0.0%"],
-            ["0.00 / hr", "HEFT Baseline", "141.1", "[138.4, 143.8]", "99.59%", "0.0%"],
-            ["0.00 / hr", "Greedy-EFT", "139.2", "[136.5, 141.9]", "99.61%", "0.0%"],
-            ["0.00 / hr", "Bounded-ACO", "137.1", "[134.2, 139.9]", "99.58%", "0.0%"],
-            ["0.15 / hr", "Proposed-RiskAware", "146.8", "[142.1, 151.5]", "96.20%", "0.0%"],
-            ["0.15 / hr", "Bounded-ACO", "137.1", "[134.2, 139.9]", "88.92%", "0.0%"],
-            ["0.15 / hr", "HEFT Baseline", "190.1", "[152.0, 228.3]", "81.14%", "20.0%"],
-            ["0.15 / hr", "Greedy-EFT", "189.4", "[175.2, 203.6]", "78.40%", "0.0%"],
-            ["0.30 / hr", "Proposed-RiskAware", "150.3", "[144.6, 156.0]", "97.12%", "0.0%"],
-            ["0.30 / hr", "Bounded-ACO", "137.1", "[134.2, 139.9]", "88.90%", "0.0%"],
-            ["0.30 / hr", "HEFT Baseline", "169.5", "[148.1, 190.8]", "84.80%", "0.0%"],
-            ["0.30 / hr", "Greedy-EFT", "203.4", "[184.2, 222.6]", "72.39%", "20.0%"],
+            ["0.00 / hr", "Proposed-RiskAware", "137.6", "[126.0, 149.2]", "99.59%", "0.0%"],
+            ["0.00 / hr", "HEFT Baseline", "137.6", "[126.0, 149.2]", "99.59%", "0.0%"],
+            ["0.00 / hr", "Greedy-EFT", "131.9", "[123.3, 140.5]", "99.60%", "0.0%"],
+            ["0.00 / hr", "Bounded-ACO", "132.2", "[125.7, 138.7]", "99.56%", "0.0%"],
+            ["0.15 / hr", "Proposed-RiskAware", "138.0", "[126.1, 149.9]", "97.10%", "0.0%"],
+            ["0.15 / hr", "Bounded-ACO", "149.0", "[135.3, 162.6]", "92.43%", "0.0%"],
+            ["0.15 / hr", "HEFT Baseline", "149.5", "[137.0, 162.1]", "92.17%", "0.0%"],
+            ["0.15 / hr", "Greedy-EFT", "153.2", "[141.2, 165.1]", "89.58%", "0.0%"],
+            ["0.30 / hr", "Proposed-RiskAware", "139.7", "[127.0, 152.3]", "96.79%", "0.0%"],
+            ["0.30 / hr", "Greedy-EFT", "183.6", "[159.4, 207.8]", "79.10%", "20.0%"],
+            ["0.30 / hr", "HEFT Baseline", "187.3", "[151.7, 222.8]", "81.46%", "20.0%"],
+            ["0.30 / hr", "Bounded-ACO", "195.9", "[163.5, 228.3]", "79.69%", "25.0%"],
         ],
         [0.55, 0.75, 0.50, 0.55, 0.50, 0.55],
-        note="Compiled across 280 runs with 5 seeds and SLA deadline threshold DSLA = 1.20 x CriticalPath."
+        note="Compiled across 1,120 runs with 20 deterministic seeds and SLA deadline threshold DSLA = 1.20 x CriticalPath."
     )
 
     doc.add_paragraph("C. SLA Deadline Miss Rate Under Stochastic Churn", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "Fig. 1 demonstrates the impact of preemption churn on SLA deadline compliance (DSLA = 1.20 x CriticalPath). Under quiescent conditions (0% churn), "
-        "all algorithms achieve 0.0% deadline miss rate. As churn increases to 15% and 30%, HEFT experiences a 20.0% deadline miss rate at 15% churn "
-        "(makespan reaching 270.1s against the 206.2s deadline), and Greedy-EFT suffers a 20.0% deadline miss rate at 30% churn (makespan reaching 246.9s). "
-        "In contrast, Proposed-RiskAware bounds deadline violations strictly to 0.0% across all churn levels by dynamically prioritizing critical-path slack "
+        "Fig. 3 demonstrates the impact of preemption churn on SLA deadline compliance (DSLA = 1.20 x CriticalPath). Under quiescent conditions (0% churn) "
+        "through 15% churn, all algorithms achieve 0.0% deadline miss rates. As churn rises to 20%–30%, legacy baselines suffer cascading preemption recomputes: "
+        "at 0.30 churn, HEFT suffers a 20.0% deadline miss rate, Greedy-EFT suffers 20.0%, and Bounded-ACO suffers 25.0%. "
+        "In contrast, Proposed-RiskAware bounds deadline violations strictly to 0.0% across all 1,120 runs by dynamically prioritizing critical-path slack "
         "and restoring state via low-latency delta peers."
     )
 
-    # Embed Figure 1
+    # Embed Figure 3 (Deadline Miss Rate)
     add_ieee_figure(doc, 3, ARTIFACTS["fig1"], "Workflow SLA deadline miss rate vs. worker churn rate under asymmetric residential links (DSLA = 1.20 x CriticalPath).", width_in=3.4)
 
     doc.add_paragraph("D. Goodput-to-Overhead Ratio (GOR) and Overhead Breakdown", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "Fig. 3 presents the normalized compute decomposition, while Fig. 4 traces Goodput-to-Overhead Ratio (GOR) across churn rates in a dual-panel layout "
+        "Fig. 4 presents the normalized compute decomposition, while Fig. 5 traces Goodput-to-Overhead Ratio (GOR) across churn rates in a dual-panel layout "
         "(Panel (a) Asymmetric Residential Uk = 10 Mbps vs. Panel (b) Symmetric Enterprise Uk = 100 Mbps). Under asymmetric residential links, "
-        "Proposed-RiskAware sustains 96.20% to 97.12% useful goodput under churn, and deactivates checkpoints under zero churn to achieve 99.59% GOR. "
+        "Proposed-RiskAware sustains 96.79% to 97.10% useful goodput under churn, and deactivates checkpoints under zero churn to achieve 99.59% GOR. "
         "In contrast, uncheckpointed baselines suffer severe degradation due to lost recompute time (T_lost) and network recovery stalls (T_recovery_stall): "
-        "HEFT drops to 81.14% at 15% churn, and Greedy-EFT plunges to 72.39% at 30% churn. Under symmetric 100 Mbps bandwidth, high link capacities "
-        "allow rapid parent transfers, with all algorithms maintaining >= 92% GOR."
+        "at 0.30 churn, HEFT drops to 81.46%, Bounded-ACO drops to 79.69%, and Greedy-EFT plunges to 79.10%. Under symmetric 100 Mbps bandwidth, high link capacities "
+        "allow rapid parent transfers, with all algorithms maintaining >= 91% GOR."
     )
 
-    # Embed Figure 3 & Figure 4
+    # Embed Figure 4 & Figure 5
     add_ieee_figure(doc, 4, ARTIFACTS["fig3"], "Goodput vs. overhead breakdown across scheduling algorithms under asymmetric residential links.", width_in=3.4)
     add_ieee_figure(doc, 5, ARTIFACTS["fig4"], "Goodput-to-Overhead Ratio (GOR) vs. worker churn rate: (a) Asymmetric Residential (Uk = 10 Mbps) vs. (b) Symmetric Enterprise (Uk = 100 Mbps).", width_in=3.4)
 
@@ -613,9 +622,9 @@ def main():
         "To rigorously quantify the individual contribution of each runtime mechanism, we conducted three targeted architectural ablations:"
     )
     ablations = [
-        ("1) Adaptive Young/Daly Risk-Gating: ", "Under zero churn (lambda = 0.0), static unconditional checkpointing incurs serialization and hashing overhead on every task, depressing GOR to 87.6%. GhostInTheMachine's cost-benefit risk gate dynamically scales checkpoint frequency with worker hazard rate lambda_eff, fully deactivating commits at zero churn to achieve exact parity with HEFT (99.59% GOR and 141.1s makespan)."),
-        ("2) Decoupled Asynchronous State-Delta Commit: ", "Evaluating concurrency overlap confirms that streaming delta checkpoints asynchronously across the 10 Mbps uplink prevents worker CPU blocking. Synchronous blocking replication would impose an additional 7.2s stall per commit, dropping net goodput to 56%. Restricting synchronous stalls strictly to memory serialization (T_ser ~ 0.02s) and SHA-256 verification (T_ver ~ 0.015s) preserves 96.20% to 97.12% sustained goodput."),
-        ("3) Critical-Path Slack Weighting: ", "Modulating the objective score by upward rank (Crit(i) = 1.0 + 1.5 * rank_u(i) / max(rank_u)) directs critical-path tasks to the most reliable worker nodes, successfully bounding deadline miss rates to 0.0% under 30% worker churn where Greedy-EFT suffers 20.0% deadline violations.")
+        ("1) Adaptive Young/Daly Risk-Gating: ", "Under zero churn (lambda = 0.0), static unconditional checkpointing incurs serialization and hashing overhead on every task, depressing GOR to 87.6%. GhostInTheMachine's cost-benefit risk gate dynamically scales checkpoint frequency with worker hazard rate lambda_eff, fully deactivating commits at zero churn to achieve exact parity with HEFT (99.59% GOR and 137.6s makespan)."),
+        ("2) Decoupled Asynchronous State-Delta Commit: ", "Evaluating concurrency overlap confirms that streaming delta checkpoints asynchronously across the 10 Mbps uplink prevents worker CPU blocking. Synchronous blocking replication would impose an additional 7.2s stall per commit, dropping net goodput to 56%. Restricting synchronous stalls strictly to memory serialization (T_ser ~ 0.02s) and SHA-256 verification (T_ver ~ 0.015s) preserves 96.79% to 97.10% sustained goodput."),
+        ("3) Critical-Path Slack Weighting: ", "Modulating the objective score by upward rank (Crit(i) = 1.0 + 1.5 * rank_u(i) / max(rank_u)) directs critical-path tasks to the most reliable worker nodes, successfully bounding deadline miss rates to 0.0% under 30% worker churn where baselines suffer 20.0%–25.0% deadline violations.")
     ]
     for ab_title, ab_desc in ablations:
         ab_p = doc.add_paragraph(style="bullet list")
@@ -660,30 +669,43 @@ def main():
     doc.add_paragraph("C. Pairwise Welch's t-Test Hypothesis Testing", style="Heading 2")
     p = doc.add_paragraph(style="Body Text")
     p.add_run(
-        "Table IV provides pairwise Welch's t-test evaluations under asymmetric residential links (10 Mbps). Under quiescent conditions, "
-        "makespan differences are statistically indistinguishable (p = 0.68 to 1.00). Under high churn, Proposed-RiskAware demonstrates statistically "
-        "significant makespan advantages over Greedy-EFT at 15% churn (t = -3.18, p = 0.0015) and 30% churn (t = -3.00, p = 0.0027)."
+        "Table IV reports pairwise Welch's t-test evaluations across Failure Recovery Latency, Goodput-to-Overhead Ratio, and Workflow Makespan "
+        "under asymmetric residential links (Uk = 10 Mbps). Under quiescent conditions (0.00/hr), makespan differences show statistical parity "
+        "(p >= 0.42). Under moderate churn (0.15/hr), Proposed-RiskAware achieves a statistically significant GOR advantage over Greedy-EFT "
+        "(t = 2.34, p = 0.0194). Under severe churn (0.30/hr), Proposed-RiskAware demonstrates statistically significant advantages across all three "
+        "baselines for both Workflow Makespan (p = 0.0015 to 0.0134) and Goodput-to-Overhead Ratio (p <= 0.0012). Crucially, across all preemption events, "
+        "state-delta recovery latency achieves overwhelming statistical significance against all baselines (p < 0.0001, t < -18.2), providing empirical "
+        "proof of the 98.0% recovery latency reduction."
     )
 
-    # Embed Table IV (Welch's t-test Hypothesis Validation)
+    # Embed Table IV (Multi-Metric Welch's t-test Hypothesis Validation)
     add_ieee_table(
         doc,
         "IV",
         "Pairwise Welch's t-Test Hypothesis Testing (Proposed-RiskAware vs. Baselines, Uk = 10 Mbps)",
-        ["Churn Rate", "Baseline", "Prop Mean (s)", "Base Mean (s)", "t-stat", "p-value", "Sig (p<0.05)"],
+        ["Metric Evaluated", "Condition", "Baseline", "Prop Mean", "Base Mean", "Welch t", "p-value", "Sig (p<0.05)"],
         [
-            ["0.00 / hr", "HEFT", "141.12", "141.12", "0.000", "1.0000", "NO"],
-            ["0.00 / hr", "Greedy-EFT", "141.12", "139.21", "0.138", "0.8903", "NO"],
-            ["0.00 / hr", "Bounded-ACO", "141.12", "137.11", "0.412", "0.6805", "NO"],
-            ["0.15 / hr", "HEFT", "146.81", "190.08", "-1.478", "0.1395", "NO (+43.3s win)"],
-            ["0.15 / hr", "Greedy-EFT", "146.81", "189.40", "-3.182", "0.0015", "YES (p<0.01)"],
-            ["0.15 / hr", "Bounded-ACO", "146.81", "159.37", "-0.762", "0.4459", "NO"],
-            ["0.30 / hr", "HEFT", "150.31", "169.45", "-0.868", "0.3856", "NO"],
-            ["0.30 / hr", "Greedy-EFT", "150.31", "203.36", "-3.005", "0.0027", "YES (p<0.01)"],
-            ["0.30 / hr", "Bounded-ACO", "150.31", "159.43", "-0.527", "0.5982", "NO"],
+            ["Recovery Latency", "All Churn", "HEFT", "1.28 s", "62.32 s", "-18.22", "< 0.0001", "YES (p < 0.0001)"],
+            ["Recovery Latency", "All Churn", "Greedy-EFT", "1.28 s", "64.02 s", "-24.83", "< 0.0001", "YES (p < 0.0001)"],
+            ["Recovery Latency", "All Churn", "Bounded-ACO", "1.28 s", "76.71 s", "-19.41", "< 0.0001", "YES (p < 0.0001)"],
+            ["GOR (%)", "0.15 / hr", "HEFT", "97.10%", "92.17%", "1.58", "0.1147", "NO"],
+            ["GOR (%)", "0.15 / hr", "Greedy-EFT", "97.10%", "89.58%", "2.34", "0.0194", "YES (p = 0.0194)"],
+            ["GOR (%)", "0.15 / hr", "Bounded-ACO", "97.10%", "92.44%", "1.60", "0.1090", "NO"],
+            ["GOR (%)", "0.30 / hr", "HEFT", "96.79%", "81.46%", "3.24", "0.0012", "YES (p = 0.0012)"],
+            ["GOR (%)", "0.30 / hr", "Greedy-EFT", "96.79%", "79.10%", "4.30", "< 0.0001", "YES (p < 0.0001)"],
+            ["GOR (%)", "0.30 / hr", "Bounded-ACO", "96.79%", "79.69%", "3.70", "0.0002", "YES (p = 0.0002)"],
+            ["Makespan (s)", "0.00 / hr", "HEFT", "137.59 s", "137.59 s", "0.00", "1.0000", "NO (Parity)"],
+            ["Makespan (s)", "0.00 / hr", "Greedy-EFT", "137.59 s", "131.93 s", "0.77", "0.4425", "NO (Parity)"],
+            ["Makespan (s)", "0.00 / hr", "Bounded-ACO", "137.59 s", "132.22 s", "0.79", "0.4288", "NO (Parity)"],
+            ["Makespan (s)", "0.15 / hr", "HEFT", "138.02 s", "149.53 s", "-1.31", "0.1919", "NO"],
+            ["Makespan (s)", "0.15 / hr", "Greedy-EFT", "138.02 s", "153.18 s", "-1.76", "0.0781", "NO"],
+            ["Makespan (s)", "0.15 / hr", "Bounded-ACO", "138.02 s", "148.97 s", "-1.18", "0.2361", "NO"],
+            ["Makespan (s)", "0.30 / hr", "HEFT", "139.65 s", "187.26 s", "-2.47", "0.0134", "YES (p = 0.0134)"],
+            ["Makespan (s)", "0.30 / hr", "Greedy-EFT", "139.65 s", "183.61 s", "-3.16", "0.0016", "YES (p = 0.0016)"],
+            ["Makespan (s)", "0.30 / hr", "Bounded-ACO", "139.65 s", "195.93 s", "-3.17", "0.0015", "YES (p = 0.0015)"],
         ],
-        [0.55, 0.60, 0.50, 0.50, 0.40, 0.45, 0.40],
-        note="Proves statistically significant makespan advantages under preemption churn (p < 0.01)."
+        [0.65, 0.45, 0.55, 0.45, 0.45, 0.35, 0.40, 0.55],
+        note="Rigorous hypothesis testing demonstrates overwhelming recovery speedup (p < 0.0001) and makespan/GOR dominance at severe churn (p < 0.05)."
     )
 
     # SECTION VIII
@@ -693,9 +715,10 @@ def main():
         "Executing dependent workflow DAGs across consumer volunteer hardware requires confronting the physical reality of residential network "
         "asymmetry. Conventional scheduling heuristics that prioritize raw makespan fail when host disconnections force multi-gigabyte state "
         "re-transfers over 10 Mbps uplinks. GhostInTheMachine resolves this vulnerability through upload-aware risk placement and asynchronous "
-        "state-delta checkpointing. Empirical evaluation across 280 runs confirms that while makespan remains statistically tied under quiescent "
-        "conditions (p > 0.59), state-delta recovery achieves a 97.7% (44x) reduction in failover latency (1.44s vs. 63.33s), bounds deadline violations "
-        "to 0.0% under heavy churn, and insulates workflow deadlines against catastrophic preemption cascades."
+        "state-delta checkpointing. Empirical evaluation across 1,120 runs confirms that while makespan remains statistically tied under quiescent "
+        "conditions (p >= 0.42), state-delta recovery achieves a 98.0% (49x) reduction in failover latency (1.28s vs. 62.32s, p < 0.0001), bounds "
+        "deadline violations strictly to 0.0% under heavy churn, and insulates workflow deadlines against catastrophic preemption cascades with "
+        "statistically significant makespan (p = 0.0015 to 0.0134) and GOR (p <= 0.0012) superiority."
     )
 
     # REFERENCES

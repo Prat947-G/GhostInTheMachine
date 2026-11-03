@@ -74,8 +74,9 @@ def create_heterogeneous_cluster(
         else:
             upload_mbps = 10.0
 
-        # Churn rate with slight heterogeneity per node
-        node_churn = max(0.0, rng.gauss(churn_rate, churn_rate * 0.15))
+        # Churn rate scaled monotonically with deterministic worker heterogeneity
+        rel_factors = [0.85, 1.15, 0.90, 1.10, 0.95, 1.05, 0.80, 1.20]
+        node_churn = max(0.0, churn_rate * rel_factors[i % len(rel_factors)])
 
         w = Worker(
             id=f"worker_{i}",

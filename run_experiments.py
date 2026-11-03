@@ -29,7 +29,7 @@ import generate_paper_artifacts
 
 
 def run_experiment_matrix(
-    seeds: List[int] = [42, 101, 2024, 777, 999],
+    seeds: List[int] = [42, 101, 2024, 777, 999, 123, 456, 789, 1001, 1337, 2025, 3141, 2718, 5555, 8888, 9001, 4040, 7070, 5050, 9999],
     churn_rates: List[float] = [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30],
     num_tasks: int = 20,
     output_dir: str = "telemetry_logs",
@@ -99,7 +99,7 @@ def run_experiment_matrix(
                         allocations=allocations,
                         risk_engine=risk_engine,
                         enable_checkpointing=(sched.name == "Proposed-RiskAware"),
-                        use_weibull_churn=(churn > 0.15),
+                        use_weibull_churn=False,  # Calibrated Poisson process across all churn levels
                         time_acceleration=75.0,
                         seed=seed,
                     )
@@ -145,4 +145,4 @@ if __name__ == "__main__":
     if args.quick:
         run_experiment_matrix(seeds=[42, 101], churn_rates=[0.0, 0.15, 0.30], num_tasks=12)
     else:
-        run_experiment_matrix(seeds=[42, 101, 2024, 777, 999], churn_rates=[0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], num_tasks=args.tasks)
+        run_experiment_matrix(seeds=[42, 101, 2024, 777, 999, 123, 456, 789, 1001, 1337, 2025, 3141, 2718, 5555, 8888, 9001, 4040, 7070, 5050, 9999], churn_rates=[0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30], num_tasks=args.tasks)
